@@ -13,24 +13,49 @@ import pandas as pd
 
 from .config import get_settings
 
-# Display-name aliases where Riot ids are likely to differ from display names. UNVERIFIED: extend
-# from docs/findings.md once real character_ids are seen.
+# Riot ids whose name differs from the static display name, so no format rule can map them.
+# Verified against Community Dragon Set 18 data (apiName -> name) and cached Set 18 matches.
 ALIASES = {
-    "sentry": "pebbles",
-    "crimsonraptor": "mamabeak",
+    # units
+    "sentry": "pebbles",  # DA_18_Sentry
+    "crimsonraptor": "mamabeak",  # DA_CrimsonRaptor18
     "raptor": "mamabeak",
-    "murkwolf": "murkwolf",
-    "elderdragon": "theelderdragon",
+    "elderdragon": "theelderdragon",  # DA_18_ElderDragon
+    # traits
     "eldritch": "blackthorn",
+    "battlemage": "monolith",  # DA_18_Battlemage
+    "slayer": "ravager",  # DA_18_Slayer, also DA_18_EmblemSlayer
+    "emerald": "emeraldaspect",  # DA_Emerald18
+    "luxuniquetrait": "avatar",  # DA_18_LuxUniqueTrait
+    "aluneuniquetrait": "attuned",  # DA_AluneUniqueTrait18
+    "dravenuniquetrait": "bountyseeker",  # DA_DravenUniqueTrait18
+    "maokaiuniquetrait": "oldgrowth",  # DA_18_Maokai_UniqueTrait
+    "zyrauniquetrait": "thornmaiden",  # DA_18_ZyraUniqueTrait
 }
+
+_ID_PREFIX = re.compile(r"^(TFT\d*(_\d+)?|DA(_\d+)?)_")  # TFT18_Ahri, TFT18_5_x, DA_18_Ahri, DA_Amumu18
+# Variant suffixes on unit ids: DA_KogMaw18_AD, DA_Nidalee18_AP, DA_Lux18_Base, DA_18_GnarSmall.
+_VARIANT_SUFFIX = re.compile(r"(_AD|_AP|_Base|Small)$")
+# Set number after the name (DA_Amumu18, DA_KogMaw18_AD, DA_BlastPotion18_Radiant). Two digits only,
+# so single-digit tiers such as Augment_CyberneticImplants2 are kept.
+_SET_SUFFIX = re.compile(r"(?<=[A-Za-z])\d{2}(?=(_[A-Za-z]+)?$)")
 
 
 def norm(name: str | None) -> str:
-    """Normalize a display name or Riot id to a lowercase alphanumeric key."""
+    """Normalize a display name or Riot id to a lowercase alphanumeric key.
+
+    Handles both Set 18 id formats, ``DA_18_Name`` and ``DA_Name18``, plus variant suffixes
+    (``_AD``, ``_AP``, ``_Base``, ``Small``). Suffix rules only apply to prefixed Riot ids, never
+    to display names.
+    """
     if not name:
         return ""
     s = str(name)
-    s = re.sub(r"^(TFT\d*(_\d+)?|DA(_\d+)?)_", "", s)  # TFT18_Ahri, TFT18_5_x, DA_18_EmblemFae
+    s, n_prefix = _ID_PREFIX.subn("", s)
+    if n_prefix:
+        s = _VARIANT_SUFFIX.sub("", s)
+        s = _SET_SUFFIX.sub("", s)
+        s = _VARIANT_SUFFIX.sub("", s)
     s = re.sub(r"^(Item_|Augment_|Trait_|Emblem)", "", s)
     s = re.sub(r"[^a-z0-9]", "", s.lower())
     return ALIASES.get(s, s)
