@@ -1,0 +1,37 @@
+trait,type,breakpoints,breakpoint_effects,champions,num_champions
+Adaptor,class,2;3;4,2=25% OR [bronze] ; 3=35% OR [silver] ; 4=50% OR [gold],Akali(1);Gromp(2);Kog'Maw(3);Master Yi(3);Nidalee(4),5
+Brawler,class,2;4;6,2=25% [bronze] ; 4=40% [silver] ; 6=65% [gold],Kobuko(1);Rek'Sai(1);Alistar(2);Krug(3);Sett(4);Gnar(5),6
+Defender,class,2;4;6,2=25 [bronze] ; 4=60 [silver] ; 6=115 [gold],Leona(1);Ornn(1);Shen(2);Fiddlesticks(3);Rammus(3);Lillia(4),6
+Executioner,class,2;3;4,"2=Executioners gain Precision and 15% Critical Strike Chance. [bronze] ; 3=Additionally, enemies bleed for 25% bonus true damage over 3 seconds. [silver] ; 4=Bleed damage increased to 35%. [gold]",Yunara(2);Azir(3);Ezreal(4);Soraka(4);Kennen(5),5
+Hunter,class,2;3;4;5,2=20% [bronze] ; 3=30% [silver] ; 4=45% [silver] ; 5=60% [gold],Cinderling(1);Caitlyn(2);Tristana(3);Sivir(4);Ashe(5),5
+Invoker,class,2;3;4;5,2=1 / 3 [bronze] ; 3=1 / 4 [silver] ; 4=2 / 6 [silver] ; 5=2 / 8 [gold],Pebbles(1);Teemo(2);Kog'Maw(3);Morgana(4);Sentinel(4),5
+Juggernaut,class,2;4;6,2=4% or 20% [bronze] ; 4=6% or 30% [silver] ; 6=8% or 42% [gold],Rakan(1);Yorick(1);Scuttlecrab(2);Sejuani(2);Vi(3);Amumu(4);Maokai(5),7
+Rapidfire,class,2;3;4;5,2=+3% per Attack [bronze] ; 3=+5% per Attack [silver] ; 4=+7% per Attack [silver] ; 5=+10% per Attack [gold],Varus(1);Xayah(1);Kayle(2);Mama Beak(3);Aphelios(4),5
+Ravager,class,2;4;6,2=12% Bonus Damage [bronze] ; 4=25% Bonus Damage [silver] ; 6=40% Bonus Damage [gold],Akali(1);Camille(1);Murkwolf(2);Warwick(2);Diana(3);Brambleback(4),6
+Spellweaver,class,2;4;6,"2=10%, +1% per cast [bronze] ; 4=30%, +1% per cast [silver] ; 6=55%, +2% per cast [gold]",Karma(1);Veigar(1);LeBlanc(2);Cassiopeia(3);Fiddlesticks(3);Ahri(4);Alune(5),7
+Summoner,class,2;3,2=Empower Summons [bronze] ; 3=Improve each effect by 50% [gold],Yorick(1);Azir(3);Mama Beak(3);Zyra(4),4
+Vanguard,class,2;4;6,2=18% max Health [bronze] ; 4=30% max Health [silver] ; 6=40% max Health. Gain 5% Durability while Shielded. [gold],Rakan(1);Elise(2);Diana(3);Hecarim(3);Sentinel(4);Taric(5),6
+Apex Predator,unique,1,1=Bonus Effect [legendary],The Elder Dragon(5),1
+Attuned,unique,1,1=Bonus Effect [legendary],Alune(5),1
+Avatar,unique,1,1=Bonus Effect [legendary],Lux(5),1
+Blackthorn,origin,2;4;6,"2=175 [bronze] ; 4=350, Bonus is 30% stronger [silver] ; 6=600, Bonus is 50% stronger [gold]",Rek'Sai(1);Veigar(1);Warwick(2);Azir(3);Malphite(4);Lux(5),6
+Blossom,origin,3;5;7;9;11,"3=Wisps are upgraded, 12% [bronze] ; 5=Wisps are in every shop, 30% [silver] ; 7=Gain 4 gold after buying a Wisp, 50% [gold] ; 9=You can buy 2 Wisps per round, 55% [gold] ; 11=Wisps overflow with power, 100% [platinum]",Karma(1);Yorick(1);Yunara(2);Master Yi(3);Ahri(4);Sett(4);Ashe(5);Lux(5),8
+Bounty Seeker,unique,1,1=Bonus Effect [legendary],Draven(5),1
+Caustic,unique,1,1=Bonus Effect [legendary],Kog'Maw(3),1
+Coven,origin,3;4;5;7,"3=2 Essence per kill, 22 Essence per loss [bronze] ; 4=2 per kill, 28 per loss [silver] ; 5=3 per kill, 35 per loss [silver] ; 7=10 per kill, 60 per loss [gold]",Camille(1);Caitlyn(2);Elise(2);Cassiopeia(3);Morgana(4);Lux(5),6
+Eclipse,special,0,"0=After 8 seconds of combat, the Eclipse kills the lowest Health enemy, repeating every 3.5 seconds.",,0
+Elderwood,origin,3;5;7;9;11,3=A Stonebark Tree and a Lifebloom [bronze] ; 5=A second Stonebark Tree and Stonebark Trees gain 200 Health [silver] ; 7=and the Deepwood Protector [gold] ; 9=Plants star up to 2-star [gold] ; 11=Plants star up to 3-star and the forest comes to life [platinum],Ornn(1);Xayah(1);Alistar(2);LeBlanc(2);Hecarim(3);Ezreal(4);Gnar(5);Lux(5),8
+Emerald Aspect,unique,1,1=Bonus Effect [legendary],Taric(5),1
+Fae,origin,2;4,"2=4.5% and 3% Heal [bronze] ; 4=7% and 5% Heal. After attracting 7 Pixies, start attracting Golden Pixies instead which grant gold. [gold]",Rakan(1);Xayah(1);Tristana(3);Lillia(4);Lux(5),5
+Flora Fatalis,origin,1;2,1=10 Mana [bronze] ; 2=and grant a 7% max Health heal to the lowest Health ally [gold],Fiddlesticks(3);Soraka(4),2
+Greenfather,unique,1,1=Bonus Effect [legendary],Ivern(5),1
+Inferno,origin,2;3;5;7,"2=1% Burn, 33% Wound [bronze] ; 3=After combat, 1 of your shop slots without an Inferno champion ignites, rolling a champion one tier higher [silver] ; 5=Ignite 2 shop slots, 3% Burn [gold] ; 7=Ignite 4 shop slots, 4% Burn [gold]",Akali(1);Varus(1);Shen(2);Amumu(4);Kennen(5);Lux(5),6
+Lunar,origin,2;3;4;5,"2=7%, 7% [bronze] ; 3=10%, 12% [silver] ; 4=14%, 16% [silver] ; 5=18%, 20% [gold]",Diana(3);Aphelios(4);Alune(5);Lux(5),4
+Monolith,unique,1,1=Bonus Effect [legendary],Malphite(4),1
+Old Growth,unique,1,1=Bonus Effect [legendary],Maokai(5),1
+Primal,origin,2;4,2=Choose a Primal Blessing [bronze] ; 4=Choose a second Primal Blessing [silver],Vi(3);Nidalee(4);Sivir(4);Lux(5),4
+Riftbeast,origin,3;5;7;10,"3=Use the Alpha Mark to grant a Riftbeast their unique Buff [bronze] ; 5=Every 3 combats, your next shop is overrun with Riftbeasts [silver] ; 7=On combat start and every 5 seconds Riftbeasts grow gaining 5% AD, 5% AP, 6% Attack Speed, +5 Armor, +5 MR, +50 Health and +1 Mana [gold] ; 10=+2 maximum team size [gold]",Cinderling(1);Pebbles(1);Gromp(2);Murkwolf(2);Scuttlecrab(2);Krug(3);Mama Beak(3);Brambleback(4);Sentinel(4);The Elder Dragon(5),10
+Rival,origin,1;2,"1=Only active while fielding 1 Rival. Rivals collect takedowns, gaining 3 if they takedown another Rival. ; 2=Rivals can be fielded together, and their abilities grant each other bonuses. [gold]",Kha'Zix(3);Rengar(3),2
+Solar,origin,3,3=Your champions gain a 5% max Health shield and deal 8% bonus magic damage. Bonuses per unique 3-star: 1: +1% each; 3: 15% and 12; 5: convert 40% of bonus magic damage to true; 8: every 4s of combat a 3-star ascends to 4-star [gold],Leona(1);Kayle(2);Sejuani(2);Lux(5),4
+Sprykin,origin,3;5;7,"3=The Rider gains 15% and 15% [bronze] ; 5=40% 35%, and 50% of the BFF's Ability applies to your Sprykin champions [silver] ; 7=55% 55%, and 100% of the BFF's Ability applies to your Sprykin champions [gold]",Kobuko(1);Veigar(1);Teemo(2);Rammus(3);Tristana(3);Gnar(5),6
+Thornmaiden,unique,1,1=Bonus Effect [legendary],Zyra(4),1

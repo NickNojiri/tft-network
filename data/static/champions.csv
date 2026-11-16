@@ -1,0 +1,74 @@
+name,slug,cost,traits,hp_1star,hp_2star,hp_3star,ad_1star,ad_2star,ad_3star,attack_speed,armor,magic_resist,range,mana_start,mana_max,ability,recommended_items
+Akali,akali,1,Inferno;Adaptor;Ravager,650,1170,2106,40,60,90,0.75,35,35,1,0,25,Kunai Strike,Hand of Justice;Infinity Edge;Edge of Night
+Camille,camille,1,Coven;Ravager,700,1260,2268,40,60,90,0.75,40,40,1,0,25,Defensive Sweep,Bloodthirster;Sterak's Gage;Titan's Resolve
+Cinderling,cinderling,1,Riftbeast;Hunter,500,900,1620,40,60,90,0.7,25,25,4,0,50,Razor Leaves,Infinity Edge;Spear of Shojin;Striker's Flail
+Karma,karma,1,Spellweaver;Blossom,500,900,1620,25,37,56,0.7,25,25,4,0,40,Karmic Bond,Blue Buff;Jeweled Gauntlet;Rabadon's Deathcap
+Kobuko,kobuko,1,Sprykin;Brawler,700,1260,2268,55,82,123,0.65,40,40,1,30,90,Dance of Life,Warmog's Armor;Bramble Vest;Dragon's Claw
+Leona,leona,1,Solar;Defender,750,1350,2430,50,75,112,0.65,40,40,1,30,90,Shield Bash,Bramble Vest;Dragon's Claw;Spirit Visage
+Ornn,ornn,1,Elderwood;Defender,700,1260,2268,40,60,90,0.6,40,40,1,40,100,Bellows Breath,Warmog's Armor;Gargoyle Stoneplate;Spirit Visage
+Pebbles,sentry,1,Riftbeast;Invoker,500,900,1620,35,52,78,0.8,25,25,4,30,70,Azure Laser,Void Staff;Blue Buff;Rabadon's Deathcap
+Rakan,rakan,1,Fae;Juggernaut;Vanguard,700,1260,2268,45,67,101,0.6,35,35,1,35,105,Entrancing Dance,Protector's Vow;Spirit Visage;Warmog's Armor
+Rek'Sai,reksai,1,Blackthorn;Brawler,700,1260,2268,50,75,112,0.55,40,40,1,40,100,Uproot,Evenshroud;Sunfire Cape;Warmog's Armor
+Varus,varus,1,Inferno;Rapidfire,500,900,1620,40,60,90,0.75,25,25,4,20,110,Piercing Arrow,Infinity Edge;Spear of Shojin;Striker's Flail
+Veigar,veigar,1,Blackthorn;Sprykin;Spellweaver,500,900,1620,25,37,56,0.7,25,25,4,0,30,Primordial Burst,Jeweled Gauntlet;Blue Buff;Hextech Gunblade
+Xayah,xayah,1,Elderwood;Fae;Rapidfire,450,810,1458,45,67,101,0.7,25,25,4,0,50,Deadly Plumage,Guinsoo's Rageblade;Giant Slayer;Kraken's Fury
+Yorick,yorick,1,Blossom;Juggernaut;Summoner,650,1170,2106,50,75,112,0.6,35,35,1,50,110,Last Rites,Warmog's Armor;Steadfast Heart;Gargoyle Stoneplate
+Alistar,alistar,2,Elderwood;Brawler,950,1710,3078,50,75,112,0.6,45,45,1,30,90,Triumphant Roar,Spirit Visage;Sunfire Cape;Gargoyle Stoneplate
+Caitlyn,caitlyn,2,Coven;Hunter,550,990,1782,50,75,112,0.7,30,30,4,0,3,Headshot,Guinsoo's Rageblade;Kraken's Fury;Deathblade
+Elise,elise,2,Coven;Vanguard,900,1620,2916,20,30,45,0.65,45,45,1,20,70,Spider Queen,Spirit Visage;Bramble Vest;Dragon's Claw
+Gromp,gromp,2,Riftbeast;Adaptor,550,990,1782,30,45,67,0.7,30,30,4,0,45,Belchy Bubble,Blue Buff;Rabadon's Deathcap;Jeweled Gauntlet
+Kayle,kayle,2,Solar;Rapidfire,550,990,1782,10,15,22,0.75,30,30,4,0,0,Solar Judgement,Guinsoo's Rageblade;Giant Slayer;Rabadon's Deathcap
+LeBlanc,leblanc,2,Elderwood;Spellweaver,550,990,1782,30,45,67,0.7,30,30,4,0,40,Mirror Image,Blue Buff;Jeweled Gauntlet;Rabadon's Deathcap
+Murkwolf,murk-wolf,2,Riftbeast;Ravager,700,1260,2268,50,75,112,0.75,40,40,1,0,40,Rending Claws,Hand of Justice;Infinity Edge;Edge of Night
+Scuttlecrab,scuttlecrab,2,Riftbeast;Juggernaut,950,1710,3078,50,75,112,0.65,45,45,1,40,100,Can You Dig It?,Warmog's Armor;Bramble Vest;Dragon's Claw
+Sejuani,sejuani,2,Solar;Juggernaut,900,1620,2916,50,75,112,0.6,45,45,1,40,100,Sun's Wrath,Gargoyle Stoneplate;Warmog's Armor;Protector's Vow
+Shen,shen,2,Inferno;Defender,900,1620,2916,50,75,112,0.65,45,45,1,30,90,Ki Barrier,Sunfire Cape;Evenshroud;Protector's Vow
+Teemo,teemo,2,Sprykin;Invoker,550,990,1782,35,52,78,0.75,30,30,4,0,50,Fungus Among Us,Jeweled Gauntlet;Nashor's Tooth;Striker's Flail
+Warwick,warwick,2,Blackthorn;Ravager,750,1350,2430,45,67,101,0.75,45,45,1,0,40,Jaws of The Beast,Bloodthirster;Sterak's Gage;Titan's Resolve
+Yunara,yunara,2,Blossom;Executioner,550,990,1782,42,63,94,0.75,30,30,4,0,35,Cultivation of Spirit,Spear of Shojin;Deathblade;Striker's Flail
+Azir,azir,3,Blackthorn;Executioner;Summoner,650,1170,2106,30,45,67,0.75,35,35,4,0,35,Arise!,Guinsoo's Rageblade;Rabadon's Deathcap;Hextech Gunblade
+Cassiopeia,cassiopeia,3,Coven;Spellweaver,650,1170,2106,30,45,67,0.75,35,35,4,0,30,Noxious Blast,Blue Buff;Archangel's Staff;Hextech Gunblade
+Diana,diana,3,Lunar;Ravager;Vanguard,850,1530,2754,30,45,67,0.8,50,50,1,0,40,Pale Barrier,Jeweled Gauntlet;Hand of Justice;Titan's Resolve
+Fiddlesticks,fiddlesticks,3,Flora Fatalis;Defender;Spellweaver,1000,1800,3240,50,75,112,0.65,55,55,1,30,90,Harvest,Ionic Spark;Titan's Resolve;Adaptive Helm
+Hecarim,hecarim,3,Elderwood;Vanguard,1100,1980,3564,50,75,112,0.65,50,50,1,50,110,Spirit of Dread,Protector's Vow;Warmog's Armor;Bramble Vest
+Kha'Zix,khazix,3,Rival,950,1710,3078,40,60,90,0.85,55,55,1,0,25,Taste Their Fear,Hand of Justice;Rabadon's Deathcap;Nashor's Tooth
+Kog'Maw,kogmaw,3,Caustic;Invoker;Adaptor,650,1170,2106,40,60,90,0.8,35,35,4,15,55,Raining Artillery,Infinity Edge;Spear of Shojin;Striker's Flail
+Krug,krug,3,Riftbeast;Brawler,1100,1980,3564,55,82,123,0.6,40,40,1,80,135,Rock and Roll,Warmog's Armor;Bramble Vest;Protector's Vow
+Mama Beak,crimson-raptor,3,Riftbeast;Summoner;Rapidfire,650,1170,2106,60,90,135,0.75,35,35,4,20,60,Flock Friends,Guinsoo's Rageblade;Giant Slayer;Last Whisper
+Master Yi,master-yi,3,Blossom;Adaptor,850,1530,2754,63,94,141,0.8,55,55,1,0,3,Wuju Style,Quicksilver;Giant Slayer;Edge of Night
+Rammus,rammus,3,Sprykin;Defender,1100,1980,3564,50,75,112,0.6,50,50,1,30,80,Defensive Ball Curl,Warmog's Armor;Gargoyle Stoneplate;Steadfast Heart
+Rengar,rengar,3,Rival,900,1620,2916,60,90,135,0.75,55,55,1,10,50,Savagery,Guinsoo's Rageblade;Titan's Resolve;Edge of Night
+Tristana,tristana,3,Fae;Sprykin;Hunter,650,1170,2106,55,82,123,0.75,35,35,4,0,50,Explosive Charge,Guinsoo's Rageblade;Hextech Gunblade;Kraken's Fury
+Vi,vi,3,Primal;Juggernaut,1100,1980,3564,45,67,101,0.75,50,50,1,0,60,Furious Fists,Evenshroud;Sunfire Cape;Steadfast Heart
+Ahri,ahri,4,Blossom;Spellweaver,850,1530,2754,40,60,90,0.8,40,40,4,20,100,Spirit Bomb,Blue Buff;Jeweled Gauntlet;Striker's Flail
+Amumu,amumu,4,Inferno;Juggernaut,1300,2340,4212,70,105,157,0.7,60,60,1,30,125,Tantrum,Bramble Vest;Dragon's Claw;Warmog's Armor
+Aphelios,aphelios,4,Lunar;Rapidfire,850,1530,2754,60,90,135,0.8,40,40,4,20,70,Moonlight's Onslaught,Guinsoo's Rageblade;Giant Slayer;Kraken's Fury
+Brambleback,brambleback,4,Riftbeast;Ravager,1100,1980,3564,120,180,270,0.55,65,65,1,0,40,Crimson Fury,Titan's Resolve;Edge of Night;Guinsoo's Rageblade
+Ezreal,ezreal,4,Elderwood;Executioner,850,1530,2754,45,67,101,0.75,40,40,4,0,30,Nature's Wrath,Spear of Shojin;Deathblade;Striker's Flail
+Lillia,lillia,4,Fae;Defender,1300,2340,4212,40,60,90,0.65,60,60,1,40,140,Lilting Lullaby,Warmog's Armor;Steadfast Heart;Gargoyle Stoneplate
+Malphite,malphite,4,Blackthorn;Monolith,1300,2340,4212,70,105,157,0.55,70,70,1,30,80,Petrified Bark,Gargoyle Stoneplate;Steadfast Heart;Warmog's Armor
+Morgana,morgana,4,Coven;Invoker,1100,1980,3564,45,67,101,0.75,60,60,2,0,65,Withering Curse,Void Staff;Morellonomicon;Adaptive Helm
+Nidalee,nidalee,4,Primal;Adaptor,850,1530,2754,35,52,78,0.8,30,30,1,0,45,Javelin Toss,Bloodthirster;Sterak's Gage;Deathblade
+Sentinel,sentinel,4,Riftbeast;Vanguard;Invoker,1300,2340,4212,75,112,168,0.6,60,60,1,60,150,Azure Shockwave,Protector's Vow;Adaptive Helm;Warmog's Armor
+Sett,sett,4,Blossom;Brawler,1200,2160,3888,80,120,180,0.65,60,60,1,60,135,Haymaker,Warmog's Armor;Gargoyle Stoneplate;Steadfast Heart
+Sivir,sivir,4,Primal;Hunter,850,1530,2754,50,75,112,0.8,40,40,4,0,40,Boomerang Blade,Spear of Shojin;Infinity Edge;Last Whisper
+Soraka,soraka,4,Flora Fatalis;Executioner,850,1530,2754,30,45,67,0.75,40,40,4,0,30,Starcall,Blue Buff;Jeweled Gauntlet;Rabadon's Deathcap
+Zyra,zyra,4,Thornmaiden;Summoner,850,1530,2754,40,60,90,0.75,40,40,4,0,45,Rampant Growth,Void Staff;Morellonomicon;Blue Buff
+Alune,alune,5,Attuned;Lunar;Spellweaver,900,1620,2916,40,60,90,0.85,45,45,4,0,35,Moonfall,Spear of Shojin;Red Buff;Void Staff
+Ashe,ashe,5,Blossom;Hunter,900,1620,2916,75,112,168,0.8,45,45,6,0,80,Spirit Rift,Red Buff;Last Whisper;Spear of Shojin
+Draven,draven,5,Bounty Seeker,900,1620,2916,48,72,108,0.85,45,45,6,0,110,Whirling Death,Kraken's Fury;Guinsoo's Rageblade;Deathblade
+Gnar,gnar,5,Elderwood;Sprykin;Brawler,900,1620,2916,100,150,225,0.9,55,55,2,0,70,Rage Gene,Bloodthirster;Sterak's Gage;Titan's Resolve
+Ivern,ivern,5,Greenfather,1000,1800,3240,60,90,135,0.8,55,55,3,50,80,Triggerseed,Spear of Shojin;Blue Buff;Adaptive Helm
+Kennen,kennen,5,Inferno;Executioner,1200,2160,3888,50,75,112,0.85,60,60,2,0,40,Firestorm,Edge of Night;Jeweled Gauntlet;Hand of Justice
+Lux (Blackthorn),lux-eldritch,5,Avatar;Blackthorn,900,1620,2916,40,60,90,0.8,45,45,6,20,70,Final Spark,Spear of Shojin;Jeweled Gauntlet;Rabadon's Deathcap
+Lux (Blossom),lux-blossom,5,Avatar;Blossom,900,1620,2916,40,60,90,0.8,45,45,6,20,70,Final Spark,Spear of Shojin;Jeweled Gauntlet;Rabadon's Deathcap
+Lux (Coven),lux-coven,5,Avatar;Coven,900,1620,2916,40,60,90,0.8,45,45,6,20,70,Final Spark,Spear of Shojin;Jeweled Gauntlet;Rabadon's Deathcap
+Lux (Elderwood),lux-elderwood,5,Avatar;Elderwood,900,1620,2916,40,60,90,0.8,45,45,6,20,70,Final Spark,Spear of Shojin;Jeweled Gauntlet;Rabadon's Deathcap
+Lux (Fae),lux-fae,5,Avatar;Fae,900,1620,2916,40,60,90,0.8,45,45,6,20,70,Final Spark,Spear of Shojin;Jeweled Gauntlet;Rabadon's Deathcap
+Lux (Inferno),lux-inferno,5,Avatar;Inferno,900,1620,2916,40,60,90,0.8,45,45,6,20,70,Final Spark,Spear of Shojin;Jeweled Gauntlet;Rabadon's Deathcap
+Lux (Lunar),lux-lunar,5,Avatar;Lunar,900,1620,2916,40,60,90,0.8,45,45,6,20,70,Final Spark,Spear of Shojin;Jeweled Gauntlet;Rabadon's Deathcap
+Lux (Primal),lux-primal,5,Avatar;Primal,900,1620,2916,40,60,90,0.8,45,45,6,20,70,Final Spark,Spear of Shojin;Jeweled Gauntlet;Rabadon's Deathcap
+Lux (Solar),lux-solar,5,Avatar;Solar,900,1620,2916,40,60,90,0.8,45,45,6,20,70,Final Spark,Spear of Shojin;Jeweled Gauntlet;Rabadon's Deathcap
+Maokai,maokai,5,Old Growth;Juggernaut,1150,2070,3726,80,120,180,0.65,60,60,1,30,100,Sow the Seeds,Evenshroud;Protector's Vow;Sunfire Cape
+Taric,taric,5,Emerald Aspect;Vanguard,1300,2340,4212,55,82,123,0.75,70,70,1,0,70,Emerald Radiance,Warmog's Armor;Gargoyle Stoneplate;Steadfast Heart
+The Elder Dragon,elder-dragon,5,Riftbeast;Apex Predator,1800,3240,5832,125,187,281,0.5,75,75,2,20,60,Heat Without Equal,Infinity Edge;Striker's Flail;Deathblade

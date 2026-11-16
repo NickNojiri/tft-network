@@ -1,0 +1,263 @@
+name,tier,tier_num,riot_api_id,site_category,site_strength_tier,text_mentions,shown_on_site
+Augmented Power,silver,1,DA_AugmentedPower,economy,B,,yes
+Backup Bows,silver,1,DA_BackupBows,item,A,,yes
+Band of Thieves,silver,1,DA_BandOfThieves,item,S,,yes
+Boxing Lessons,silver,1,DA_BoxingLessons,combat,A,,yes
+Branching Out,silver,1,DA_18_BranchingOut,trait item,A,,yes
+Branching Out+,silver,1,DA_18_BranchingOutPlus,trait item,A,,yes
+Called Shot,silver,1,DA_CalledShot,economy,C,gold streak,yes
+Capital Gains I,silver,1,DA_CapitalGainsI,,A,gold interest,yes
+Caretaker's Ally,silver,1,DA_18_CaretakersAlly,economy,B,,yes
+Carve a Path,silver,1,DA_CarveAPath,item,A,,yes
+Celestial Blessing I,silver,1,DA_CelestialBlessingI,combat,B,,yes
+Champ Delivery,silver,1,DA_ChampDelivery,,A,,yes
+Champ Delivery+,silver,1,DA_ChampDeliveryPlus,,A,,yes
+Champ Delivery++,silver,1,DA_ChampDeliveryPlusPlus,,A,,yes
+Cognitive Tax,silver,1,DA_CognitiveTax,economy,B,gold xp,yes
+Cognitive Tax+,silver,1,DA_CognitiveTaxPlus,economy,B,gold xp,yes
+Component Buffet,silver,1,DA_ComponentBuffet,item,B,,yes
+Continuous Conjuration,silver,1,TFT_Augment_ComponentQuestRod,item,A,,no
+Corrosion,silver,1,DA_Corrosion,combat,C,,yes
+Crafted Crafting,silver,1,DA_CraftedCrafting,economy,B,reroll,yes
+Dummify,silver,1,DA_Dummify,combat,B,,yes
+Electrocharge I,silver,1,DA_ElectrochargeI,,B,,yes
+Expedition,silver,1,DA_Expedition,economy item,A,gold,yes
+Extra Buckles,silver,1,DA_ExtraBuckles,item,S,,yes
+Feeling Lucky,silver,1,DA_FeelingLucky,economy,C,gold,yes
+Find Your Center,silver,1,DA_FindYourCenter,combat,C,,yes
+Firesale,silver,1,TFT_Augment_FiresalePlus,economy,B,,no
+Flame On,silver,1,DA_18_InfernoTraitAugment,,B,,no
+Flowing Tears,silver,1,DA_FlowingTears,item,A,,yes
+Focused Fire,silver,1,DA_FocusedFire,combat,B,,yes
+Forge a Friend,silver,1,DA_ForgeAFriend,economy,A,,no
+Future Focused,silver,1,DA_FutureFocused,,S,gold hp_cost,yes
+Glass Cannon I,silver,1,DA_GlassCannon_Silver,combat,B,,yes
+Good For Something I,silver,1,DA_18_GoodForSomethingI,economy,B,gold,yes
+Group Hug I,silver,1,DA_GroupHugI,combat,C,,yes
+Healing Orbs I,silver,1,DA_HealingOrbsI,combat,B,,yes
+Iron Assets,silver,1,DA_IronAssets,item,B,gold,yes
+Item Grab Bag,silver,1,TFT6_Augment_ItemGrabBag1,item,A,,yes
+Kick Start,silver,1,DA_KickStart,economy,S,gold,yes
+Kingslayer,silver,1,DA_Kingslayer,economy,C,gold,yes
+Late Game Specialist,silver,1,DA_LateGameSpecialist,economy,B,gold,yes
+Latent Forge,silver,1,DA_LatentForge,item,B,,yes
+Loaded Dice,silver,1,DA_LoadedDice,,A,gold,yes
+Makeshift Armor I,silver,1,DA_MakeshiftArmorI,combat,B,,yes
+Missed Connections,silver,1,DA_MissedConnections,economy,A,,yes
+One Two Three,silver,1,TFT9_Augment_OneTwosThree,economy,C,,yes
+"One, Two, Five!",silver,1,DA_18_OneTwoFive,economy,A,gold,yes
+Pandora's Bench,silver,1,DA_PandorasBench,economy,A,gold,yes
+Pandora's Items I,silver,1,DA_PandorasItemsI,item,B,,yes
+Partial Ascension,silver,1,DA_PartialAscension,,B,,yes
+Patience is a Virtue,silver,1,DA_PatienceIsAVirtue,economy,B,reroll,yes
+Quick Streaks,silver,1,DA_QuickStreaks,,B,gold streak,yes
+Recombobulator,silver,1,DA_Recombobulator,economy,B,reroll,yes
+Residual Magic,silver,1,DA_18_ResidualMagic,,A,wisp,yes
+Residual Magic +,silver,1,DA_18_ResidualMagicPlus,,B,wisp,yes
+Residual Magic ++,silver,1,DA_18_ResidualMagicPlusPlus,,C,wisp,yes
+Rolling For Days I,silver,1,TFT9_Augment_Commander_RollingForDays,economy,A,reroll,yes
+Silver Destiny,silver,1,TFT_Augment_SilverDestiny,economy,A,gold,yes
+Silver Destiny+,silver,1,TFT_Augment_SilverDestinyPlus,economy,A,gold,yes
+Silver Destiny++,silver,1,TFT_Augment_SilverDestinyPlusPlus,economy,A,gold,yes
+Silver Spoon,silver,1,DA_SilverSpoon,economy,A,xp,yes
+Slice of Life,silver,1,DA_SliceOfLife,economy,B,,yes
+Slightly Magic Roll,silver,1,DA_SlightlyMagicRoll,economy,A,,yes
+Small Grab Bag,silver,1,DA_SmallGrabBag,item,A,,yes
+Stand United,silver,1,DA_StandUnited,combat,B,,yes
+Team Building,silver,1,DA_TeamBuilding,economy,B,,yes
+The Tower,silver,1,DA_TheTower,combat,A,,yes
+Twin Guardians,silver,1,DA_TwinGuardians,combat,B,,yes
+Verticality I,silver,1,DA_VerticalityI,,B,,yes
+Wisp Rebate,silver,1,DA_18_WispRebatePlus,,B,gold wisp,yes
+Wisp Rebate +,silver,1,DA_18_WispRebatePlusPlus,,C,gold wisp,yes
+Young and Wild and Free,silver,1,DA_YoungAndWildAndFree,economy,B,gold,yes
+A Magic Roll,gold,2,TFT_Augment_MagicRoll,economy,A,,yes
+Advanced Loan,gold,2,DA_AdvancedLoan,economy,A,gold,yes
+Advanced Loan+,gold,2,DA_AdvancedLoanPlus,economy,B,gold,yes
+Arcane Viktor-y,gold,2,DA_ArcaneViktory,combat,B,,yes
+Ascension,gold,2,DA_Ascension,combat,B,,yes
+Backline Blueprint,gold,2,DA_BacklineBlueprint,economy trait,A,,yes
+Beast Within,gold,2,DA_18_PrimalAugment_Nidalee,,A,,yes
+Big Grab Bag,gold,2,DA_18_BigGrabBag,item,A,gold,yes
+Birthday Reunion,gold,2,DA_BirthdayReunion,economy,S,,yes
+Blossom's Call,gold,2,DA_18_BlossomTraitAugment,,S,wisp,yes
+Bodyguard Training,gold,2,DA_BodyguardTraining,combat,B,,yes
+Bonus Gifts,gold,2,DA_BonusGift,,A,,yes
+Bonus Gifts+,gold,2,DA_BonusGiftPlus,,A,,yes
+Booster Pack,gold,2,DA_BoosterPack,economy,B,gold,yes
+Booster Pack+,gold,2,DA_BoosterPackPlus,economy,B,gold,yes
+Booster Pack++,gold,2,DA_BoosterPackPlusPlus,economy,A,gold,yes
+Bronze For Life I,gold,2,DA_BronzeForLifeI,combat,B,,yes
+Calculated Loss,gold,2,DA_CalculatedLoss,economy,B,gold reroll,yes
+Capital Gains II,gold,2,DA_CapitalGainsII,,A,gold interest,yes
+Caretaker's Favor,gold,2,DA_CaretakersFavor,item,A,,yes
+Celestial Blessing II,gold,2,DA_CelestialBlessingII,combat,B,,yes
+Challenger's Grace,gold,2,DA_ChallengersGrace,combat,A,,yes
+Chosen of the Sun,gold,2,DA_18_SolarTraitAugment,,B,,yes
+Clear Mind,gold,2,DA_ClearMind,economy,B,xp,yes
+Clockwork Accelerator,gold,2,DA_ClockworkAccelerator,combat,A,,yes
+Cluttered Mind,gold,2,DA_ClutteredMind,economy,B,xp,yes
+Cognitive Overload,gold,2,DA_CognitiveOverload,economy,B,gold xp reroll,yes
+Consuming Flora,gold,2,DA_18_FloraFatalisAugment,,S,gold,yes
+Cooking Pot,gold,2,DA_CookingPot,item combat,B,,yes
+Coven Acolyte,gold,2,DA_18_CovenTraitAugment,,A,,yes
+Cry Me A River,gold,2,DA_CryMeARiver,combat,B,,yes
+Cybernetic Implants II,gold,2,TFT6_Augment_CyberneticImplants2,combat,B,,yes
+Cybernetic Uplink II,gold,2,TFT6_Augment_CyberneticUplink2,combat,B,,yes
+Dark Ritual,gold,2,DA_18_CovenTraitAugment_LootToAP,,B,,yes
+Double Trouble,gold,2,DA_DoubleTrouble,combat,S,,yes
+Duo Queue,gold,2,DA_18_DuoQueue,economy item,A,,yes
+Early Learnings,gold,2,DA_EarlyLearnings,combat,B,,yes
+Electrocharge II,gold,2,DA_ElectrochargeII,,B,,yes
+Embiggen,gold,2,DA_18_FaeTraitAugment,,B,,yes
+Epic Rolldown,gold,2,DA_EpicRolldown,economy,A,reroll,yes
+Epoch,gold,2,DA_Epoch,economy,A,xp reroll,yes
+Epoch+,gold,2,DA_EpochPlus,economy,S,xp reroll,yes
+Exclusive Customization,gold,2,DA_ExclusiveCustomization,economy,A,gold,yes
+Explosive Growth,gold,2,DA_ExplosiveGrowth,economy,A,xp,yes
+Explosive Growth+,gold,2,DA_ExplosiveGrowthPlus,economy,A,xp,yes
+FOURcing,gold,2,DA_18_FOURcing,,B,,yes
+Frontline Foundation,gold,2,DA_FrontlineFoundation,economy trait,A,,yes
+Gain 21 Gold,gold,2,DA_GainGold,economy,C,gold,yes
+Gilded Steel,gold,2,DA_GildedSteel,combat,S,,yes
+Glass Cannon II,gold,2,DA_GlassCannon_Gold,combat,A,,yes
+Gold Destiny,gold,2,DA_GoldDestiny,economy,B,gold,yes
+Gold Destiny+,gold,2,DA_GoldDestinyPlus,economy,A,gold,yes
+Group Hug II,gold,2,DA_GroupHugII,combat,A,,yes
+Hard Bargain,gold,2,DA_HardBargain,economy,A,gold,yes
+Healing Orbs II,gold,2,DA_HealingOrbsII,combat,B,,yes
+Heart of Steel,gold,2,DA_HeartOfSteel,item combat,B,,yes
+Heroic Grab Bag,gold,2,DA_HeroicGrabBag,economy,S,gold,yes
+Heroic Grab Bag+,gold,2,DA_HeroicGrabBagPlus,economy,A,gold,yes
+Heroic Grab Bag++,gold,2,DA_HeroicGrabBagPlusPlus,economy,A,gold,yes
+Hustler,gold,2,DA_Hustler,economy,A,gold interest,yes
+Infinity Protection,gold,2,DA_InfinityProtection,economy item,B,,no
+Investment Strategy I,gold,2,DA_InvestmentStrategyI,economy combat,A,gold interest,yes
+"It's Me, Baby",gold,2,DA_ItsMeBaby,combat economy,S,gold,yes
+Item Extraction,gold,2,DA_BlackthornTraitAugment,,B,,yes
+Jeweled Lotus I,gold,2,DA_JeweledLotus_I,combat,B,,yes
+Jungle Pathing,gold,2,,,B,,no
+Know Your Enemy,gold,2,TFT9_Augment_KnowYourEnemy,combat,A,,yes
+Late Game Scaling,gold,2,DA_LateGameScaling,combat,A,xp,yes
+Legion of Threes,gold,2,DA_LegionOfThrees,item,A,,yes
+Makeshift Armor II,gold,2,DA_MakeshiftArmorII,combat,C,,yes
+Malicious Monetization,gold,2,DA_MaliciousMonetization,economy,C,gold,yes
+Max Build,gold,2,DA_MaxBuild,economy,B,reroll,yes
+Money Hungry,gold,2,DA_MoneyHungry_NotBroken,economy,B,gold,yes
+Money Hungry+,gold,2,DA_MoneyHungryPlus,economy,B,gold,yes
+Nature's Shelter,gold,2,DA_18_ElderwoodTraitAugment,,B,,yes
+NO SCOUT NO PIVOT,gold,2,DA_NoScoutNoPivot,combat,B,,yes
+Omega Riftbeast,gold,2,DA_18_RiftbeastTraitAugment,,A,,yes
+Pandora's Items II,gold,2,DA_PandorasItemsII,item,B,gold,yes
+Patient Study,gold,2,DA_PatientStudy,economy,A,xp,yes
+Pilfer,gold,2,DA_Pilfer,economy,B,gold,yes
+Portable Forge,gold,2,DA_PortableForge,item,A,,yes
+Precision and Grace,gold,2,TFT_Augment_ChallengerDash,combat,A,,no
+Promised Protection,gold,2,DA_PromisedProtection,item,A,,yes
+Razor's Edge,gold,2,,,A,,no
+Replication,gold,2,DA_Replication,item,A,,yes
+Salvage Bin,gold,2,DA_SalvageBin,item,A,,yes
+Salvage Bin+,gold,2,DA_SalvageBinPlus,item,A,,yes
+Seraphim's Staff,gold,2,DA_SeraphimsStaff,item,B,,yes
+Slammin',gold,2,DA_Slammin,economy,C,gold xp,yes
+Slammin'+,gold,2,DA_SlamminPlus,economy,B,gold xp,yes
+Small Furry Friend,gold,2,DA_18_SprykinAugment,,B,,yes
+Solo Leveling,gold,2,DA_SoloLeveling,combat,B,xp,yes
+Solo Plate,gold,2,DA_SoloPlate,item,S,,yes
+Speedy Double Kill,gold,2,DA_SpeedyDoubleKill,item economy,A,gold,yes
+Spirit of Redemption,gold,2,DA_SpiritOfRedemption,item combat,B,,yes
+Spreading Roots,gold,2,DA_SpreadingRoots,item trait,S,,yes
+Spreading Roots+,gold,2,DA_SpreadingRootsPlus,item trait,A,gold,yes
+Staffsmith,gold,2,DA_Staffsmith,item,A,,yes
+Sun and Moon,gold,2,DA_18_LunarTraitAugment,,B,,yes
+Sun and Moon+,gold,2,DA_18_LunarTraitAugmentPlus,,B,,yes
+Swordsmith,gold,2,DA_Swordsmith,item,A,,yes
+The Golden Dragon,gold,2,DA_TheGoldenDragon,combat item,A,,yes
+Time Skip,gold,2,DA_TimeSkip,,S,xp,yes
+Tons of Stats!,gold,2,DA_TonsOfStatsI,combat,B,,yes
+Trade Sector,gold,2,DA_TradeSector,economy,A,gold reroll,yes
+Trade Sector+,gold,2,DA_TradeSectorPlus,economy,B,gold reroll,yes
+Two Much Value,gold,2,TFT_Augment_TwoMuchValue,economy,A,,no
+U.R.F,gold,2,DA_URF,item,A,,yes
+Unrivaled,gold,2,DA_18_RivalsAugment,,A,,yes
+Verticality II,gold,2,DA_VerticalityII,,C,,yes
+Warpath,gold,2,DA_Warpath,economy item,A,,yes
+Weight The Worth,gold,2,DA_18_WeightTheWorth,,B,,yes
+Worth the Wait,gold,2,DA_WorththeWait,economy,B,,yes
+Woven Magic,gold,2,DA_WovenMagic,item combat,A,,yes
+Band of Thieves II,prismatic,3,DA_BandOfThievesII,item,A,,yes
+Band of Thieves II+,prismatic,3,DA_BandOfThievesIIPlus,item,A,,yes
+Band of Thieves II++,prismatic,3,DA_BandOfThievesIIPlusPlus,item,A,,yes
+Baron's Lair,prismatic,3,DA_BaronsLair,item combat,A,,yes
+Belt Overflow,prismatic,3,DA_BeltOverflow,item combat,B,,yes
+Birthday Present,prismatic,3,DA_BirthdayPresent,economy,A,gold,yes
+Bronze For Life II,prismatic,3,DA_BronzeForLifeII,combat,B,,yes
+Build a Bud,prismatic,3,DA_BuildABud,combat,S,gold,yes
+Buried Treasures,prismatic,3,TFT9_Augment_BuildingACollectionPlusPlus,item,S,,yes
+Call to Chaos,prismatic,3,DA_CallToChaos,economy,B,,yes
+Celestial Blessing III,prismatic,3,DA_CelestialBlessingIII,combat,B,,yes
+Comeback Story,prismatic,3,DA_ComebackStory,combat,B,,yes
+Commerce Core,prismatic,3,DA_CommerceCore,economy,S,reroll,yes
+Component Quest,prismatic,3,DA_ComponentQuest,,B,gold,yes
+Construct a Companion,prismatic,3,DA_ConstructACompanion,combat,A,,no
+Coronation,prismatic,3,DA_Coronation,economy combat,A,,yes
+Cursed Crown,prismatic,3,DA_CursedCrown,economy,B,,yes
+Deadlier Blades,prismatic,3,DA_DeadlierBlades,combat item,S,,yes
+Deadlier Caps,prismatic,3,DA_DeadlierCaps,combat item,A,,yes
+Expected Unexpectedness,prismatic,3,TFT_Augment_ExpectedUnexpectedness,economy,S,,yes
+Flexible,prismatic,3,DA_Flexible,combat trait,B,,yes
+Forged in Strength,prismatic,3,DA_ForgedInStrength,item,B,,yes
+Giant and Mighty,prismatic,3,DA_GiantAndMighty,combat,B,,yes
+Going Long,prismatic,3,DA_GoingLong,economy,A,gold xp interest,yes
+Golden Gamble,prismatic,3,DA_GoldenGamble,item,S,gold,yes
+Golden Gamble+,prismatic,3,DA_GoldenGamblePlus,item,A,gold,yes
+Golden Gamble++,prismatic,3,DA_GoldenGamblePlusPlus,item,A,gold,yes
+Hard Commit,prismatic,3,DA_HardCommit,trait economy,B,gold,yes
+Hedge Fund,prismatic,3,DA_HedgeFund,economy,B,gold interest,yes
+Hedge Fund+,prismatic,3,TFT9_Augment_HedgeFundPlus,,A,,no
+Hold the Line,prismatic,3,DA_HoldTheLine,combat,B,,yes
+Invested+,prismatic,3,DA_InvestedPlus,economy,B,gold reroll,yes
+Invested++,prismatic,3,DA_InvestedPlusPlus,economy,B,gold reroll,yes
+Investment Strategy II,prismatic,3,DA_InvestmentStrategy,combat economy,A,gold interest,yes
+Jeweled Lotus II,prismatic,3,DA_JeweledLotus_II,combat,A,,yes
+Level Up!,prismatic,3,DA_LevelUp,economy,A,xp,yes
+Living Forge,prismatic,3,DA_LivingForge,item,A,,yes
+Lucky Gloves,prismatic,3,DA_LuckyGloves,item,S,gold,yes
+Lucky Gloves+,prismatic,3,DA_LuckyGlovesPlus,item,S,,yes
+Luxury Subscription,prismatic,3,DA_LuxurySubscription,economy,S,gold,yes
+Master of All Origins,prismatic,3,DA_18_LuxAugmentII,item trait,A,,yes
+Min-Max,prismatic,3,DA_Min_Max,item,A,gold,yes
+Money Monsoon,prismatic,3,DA_MoneyMonsoon,economy,B,gold,yes
+Nesting Anvils,prismatic,3,DA_NestingAnvils,,A,gold,yes
+Nesting Anvils +,prismatic,3,DA_NestingAnvilsPlus,,A,gold,yes
+Nesting Dolls,prismatic,3,DA_NestingDollsPlusPlus,,B,,no
+New Recruit,prismatic,3,TFT6_Augment_ForceOfNature,economy,C,,no
+New Recruit+,prismatic,3,TFT6_Augment_ForceOfNature,economy,C,,no
+"One Buff, Two Buff",prismatic,3,DA_OneBuffTwoBuff,item economy,S,,yes
+Pandora's Items III,prismatic,3,DA_PandorasItemsIII,item,A,,yes
+Phreaky Friday,prismatic,3,TFT9_Augment_PhreakyFriday,,,,no
+Phreaky Friday +,prismatic,3,TFT9_Augment_PhreakyFridayPlus,item,B,,no
+Prismatic Destiny,prismatic,3,DA_PrismaticDestiny,economy,A,gold,yes
+Prismatic Destiny+,prismatic,3,DA_PrismaticDestinyPlus,economy,A,gold,yes
+Prismatic Ticket,prismatic,3,DA_PrismaticTicket,economy,B,reroll,yes
+Radiant Rascal,prismatic,3,DA_RadiantRascal,item,S,,yes
+Radiant Relics,prismatic,3,DA_RadiantRelic,item,A,,yes
+Retribution,prismatic,3,DA_Retribution,item,A,,yes
+Shimmerscale Essence,prismatic,3,DA_ShimmerscaleEssence,economy item,A,,yes
+Shopping Spree,prismatic,3,DA_ShoppingSpree,economy,A,gold,yes
+Soul Awakening,prismatic,3,DA_SoulAwakening,combat,A,,yes
+Starring Up,prismatic,3,,,A,,no
+Sweet Treats,prismatic,3,DA_SweetTreats,item,B,,yes
+Sword Overflow,prismatic,3,DA_SwordOverflow,item combat,S,,yes
+Tactician's Kitchen,prismatic,3,DA_TacticiansKitchen,economy trait,A,,yes
+The Golden Egg,prismatic,3,DA_GoldenEgg,economy,B,,yes
+The Trait Tree,prismatic,3,DA_TheTraitTree,item,A,gold,yes
+The Trait Tree+,prismatic,3,DA_TheTraitTreePlus,item,A,gold,yes
+TONS of Stats!,prismatic,3,DA_TonsOfStatsII,combat,B,,yes
+Trait Ladder,prismatic,3,DA_TraitLadder,,A,,yes
+Upward Mobility,prismatic,3,DA_UpwardMobility,economy,A,xp reroll,yes
+Urf's Grab Bag,prismatic,3,DA_UrfsGrabBag,economy item,A,gold,yes
+Verticality III,prismatic,3,DA_VerticalityIII,,S,,yes
+Wand Overflow,prismatic,3,DA_WandOverflow,item combat,S,,yes
+We Stick Together,prismatic,3,DA_WeStickTogether,trait item,A,,yes
+Worth the Wait II,prismatic,3,DA_WorththeWaitII,economy,A,,yes
