@@ -1,0 +1,44 @@
+comp_name,site_tier,patch,playstyle,difficulty,units
+AP Exodia,S,18.6,Fast 9,Hard,Alune;Lux (Lunar);Taric;Lillia;Morgana;Sentinel;Diana;Fiddlesticks;Hecarim
+Wrath of the Woods,S,18.6,Fast 8,Medium,Lux (Elderwood);Aphelios;Ezreal;Lillia;Gnar;Hecarim;Alistar;Ornn;Xayah
+AD Exodia,S,18.6,Fast 9,Hard,Draven;Maokai;The Elder Dragon;Kennen;Ivern;Taric;Amumu;Sentinel
+B4L Power,S,18.6,Fast 8,Medium,Ahri;Sett;Zyra;Gnar;Taric;Lillia;Fiddlesticks;Yorick
+Adapt or Die,S,18.6,Level 7 Slow Roll,Easy,Nidalee;Master Yi;Rengar;Vi;Gnar;Sett;Krug;Yorick
+Riftbeast Ascension,S,18.6,Fast 8,Medium,The Elder Dragon;Brambleback;Krug;Gnar;Taric;Sentinel;Murkwolf;Pebbles
+Deadwood Execution,S,18.6,Fast 8,Medium,Ezreal;Soraka;Hecarim;Gnar;Kennen;Fiddlesticks;Alistar;LeBlanc;Ornn
+Solar Yunara,S,18.6,Level 6 Slow Roll,Easy,Sejuani;Yunara;Karma;LeBlanc;Azir;Kayle;Leona;Yorick
+MooShrooms,A,18.6,Level 6 Slow Roll,Easy,Alistar;LeBlanc;Teemo;Morgana;Sentinel;Hecarim;Kobuko;Veigar
+The Final Forest,A,18.6,Fast 9,Hard,Draven;Maokai;Ezreal;Kennen;Gnar;Ivern;Taric;Amumu;Alistar
+"Kill, Stack, Repeat",A,18.6,Level 5 Slow Roll,Easy,LeBlanc;Ornn;Veigar;Cassiopeia;Fiddlesticks;Alistar;Rek'Sai
+Moonlit Hunt,A,18.6,Fast 8,Medium,Amumu;Aphelios;Nidalee;Alune;Sentinel;Diana;Kog'Maw;Vi;Varus
+The Eclipse,A,18.6,Level 6 Slow Roll,Easy,Aphelios;Kayle;Sejuani;Alune;Amumu;Diana;Shen;Leona;Varus
+Spikes and Soldiers,A,18.6,Level 7 Slow Roll,Medium,Zyra;Azir;Rammus;Fiddlesticks;Kennen;Soraka;Teemo;Veigar
+Ashe to Ashes,A,18.6,Fast 9,Hard,Ashe;Maokai;Sivir;Ivern;Kennen;Taric;Amumu;Vi;Rakan
+Riftbeast Reroll,A,18.6,Level 5 Slow Roll,Easy,The Elder Dragon;Krug;Cinderling;Pebbles;Gnar;Taric;Sentinel;Scuttlecrab
+Fae Cat,A,18.6,Level 7 Slow Roll,Easy,Rammus;Rengar;Tristana;Sivir;Lillia;Vi;Kobuko;Rakan
+Bloom and Doom,A,18.6,Fast 8,Medium,Ahri;Morgana;Sett;Ivern;Taric;Sentinel;Krug;Karma;Pebbles
+Defenders of the DoT,A,18.6,Level 7 Slow Roll,Medium,Cassiopeia;Fiddlesticks;Rammus;Lillia;Soraka;Shen;Leona;Ornn
+Blossom.Exe,A,18.6,Fast 8,Medium,Ahri;Ezreal;Sett;Gnar;Soraka;Fiddlesticks;Yunara;Ornn
+AP 8-4,A,18.6,Fast 8,Medium,Malphite;Soraka;Zyra;Alune;Kennen;Amumu;Azir;Fiddlesticks;Yorick
+Juggernaut Flex,B,18.6,Fast 8,Medium,Ashe;Maokai;Sivir;Zyra;Amumu;Vi;Scuttlecrab;Sejuani;Yorick
+Fae and Furious,B,18.6,Level 7 Slow Roll,Medium,Sivir;Rammus;Tristana;Vi;Taric;Lillia;Kobuko;Rakan
+Beak Performance,B,18.6,Level 7 Slow Roll,Medium,Zyra;Hecarim;Krug;Mama Beak;Gnar;Sentinel;Azir;Xayah
+Mana Go Brrr,B,18.6,Fast 8,Medium,Alune;Brambleback;Morgana;Sentinel;Taric;Diana;Hecarim;Kog'Maw;Pebbles
+Solar Flare,B,18.6,Level 5 Slow Roll,Easy,Akali;Camille;Ornn;Varus;Amumu;Kayle;Sejuani;Leona
+Yunalistar,B,18.6,Level 6 Slow Roll,Easy,Alistar;Warwick;Yunara;Ezreal;Soraka;Azir;Murkwolf;Rek'Sai
+Warwick’s Wolf Pack,B,18.6,Level 6 Slow Roll,Easy,Brambleback;Malphite;Murkwolf;Warwick;Azir;Diana;Krug;Rek'Sai
+Rise and Vine,B,18.6,Level 6 Slow Roll,Easy,Kayle;Sejuani;Ornn;Xayah;Hecarim;Leona;Rakan
+Apheliguards,B,18.6,Fast 8,Medium,Ivern;Aphelios;Brambleback;Sentinel;Taric;Zyra;Diana;Hecarim;Mama Beak
+Exe Cap,B,18.6,Fast 9,Hard,Kennen;Ezreal;Lillia;Soraka;Gnar;Fiddlesticks;Rammus;Alistar;Shen
+The Hunters,B,18.6,Fast 8,Medium,Ashe;Malphite;Nidalee;Sivir;Sentinel;Kog'Maw;Krug;Cinderling;Rek'Sai
+Crablyn,C,18.6,Level 6 Slow Roll,Easy,Sivir;Caitlyn;Scuttlecrab;Ashe;Tristana;Vi;Sejuani;Rakan
+Moonlight Mantis,C,18.6,Level 7 Slow Roll,Medium,Ezreal;Diana;Hecarim;Kha'Zix;Alune;Aphelios;Soraka;Fiddlesticks;Ornn
+Weave Got This,C,18.6,Fast 8,Medium,Alune;Ahri;Lillia;Diana;Fiddlesticks;Karma;Rakan;Yorick
+Elise Unleashed,C,18.6,Level 6 Slow Roll,Medium,Sentinel;Elise;Murkwolf;Morgana;Alune;Brambleback;Diana;Hecarim
+Trigger Happy,C,18.6,Fast 8,Medium,Maokai;Aphelios;Brambleback;Amumu;Sentinel;Diana;Mama Beak;Varus;Xayah
+Unrivaled,C,18.6,Level 7 Slow Roll,Medium,Aphelios;Hecarim;Kha'Zix;Rengar;Kennen;Ezreal;Soraka;Diana;LeBlanc
+Dark Ritual,C,18.6,Level 6 Slow Roll,Medium,Morgana;Cassiopeia;Elise;Alune;Sentinel;Diana;Hecarim
+Three Star Emperor,C,18.6,Level 7 Slow Roll,Medium,Azir;Vi;Yunara;Sett;Zyra;Kha'Zix;Rek'Sai;Yorick
+Wispful Thinking,C,18.6,Fast 8,Medium,Ashe;Ahri;Sett;Sivir;Gnar;Zyra;Vi;Karma;Yorick
+Thrill of the Hunt,C,18.6,Level 7 Slow Roll,Easy,Hecarim;Mama Beak;Rengar;Diana;Taric;Aphelios;Brambleback;Sentinel
+Primal Spear,C,18.6,Fast 8,Medium,Taric;Morgana;Nidalee;Alune;Sentinel;Diana;Kog'Maw;Vi;Rakan

@@ -1,0 +1,178 @@
+name,category,cost_gold,blossom_cost_gold,appearance_rule,mentions,econ_related
+Abandon Ship,Risky,2,0,no 3-star champion; during the first 2 seconds of planning,gold;reroll,yes
+Aftershock,Combat,2,2,,,no
+All Fives,Shop,8,8,at least 15 gold,reroll,yes
+All Fours,Shop,3,3,at least 8 gold,reroll,yes
+All Ones,Shop,0,0,at least 5 gold,reroll,yes
+All Threes,Shop,2,2,at least 5 gold,reroll,yes
+All Twos,Shop,1,1,at least 5 gold,reroll,yes
+Animate Shop,Shop,8,8,at least 12 gold,reroll,yes
+Apprentice,Champion,3,2,,champion,no
+Artifactinate,Item,2,2,at least 3 item components,item,no
+Backrow Star,Combat,1,1,,,no
+Bark Armor,Combat,0,0,,,no
+Barrier,Combat,3,3,,,no
+Barter,GoldXP,2,2,at least 20 player health,gold,yes
+Bear's Visit,Combat,3,2,Primal trait active,,no
+Beggar's Wisp,GoldXP,0,0,,gold,yes
+Big Boom,Combat,1,1,,,no
+Big Guns,Champion,8,7,,champion,no
+Blast Potion,Misc,1,1,,item,no
+Blaze,Combat,3,3,,,no
+Blood and Iron,Item,4,4,,item,no
+Blood Money,GoldXP,2,2,,gold;champion,yes
+Blood Ritual,Misc,6,6,at least 10 player health,hp_cost;champion,yes
+Booster Shot,Combat,6,6,"2 or more 1-star champions on board, or an itemized 5-cost",,no
+Border Village,Shop,3,2,,reroll,yes
+Borrowed Gear,Combat,1,1,,item,no
+Bronze Spoon,GoldXP,3,2,,xp,yes
+Bulwark,Combat,3,3,2 or more tanks on board,,no
+Bunch-o’-Belts,Combat,1,1,,,no
+Circle of Elders,Champion,45,40,,champion,no
+Coin Flip,GoldXP,0,0,,gold,yes
+Combust,Combat,3,3,,,no
+Component Bounty,Risky,4,2,,item,no
+Counterspell,Combat,2,2,,,no
+Curio Cart,Item,0,0,at least 10 gold,gold;item,yes
+Cutpurse,Risky,2,2,,gold,yes
+Die Roll,GoldXP,2,3,,gold,yes
+Diversified,Combat,3,3,at least 5 non-unique traits active,,no
+Doodad Bag,Misc,1,1,at least 20 player health,,no
+Doodad Jar,Misc,0,1,at least 20 player health,,no
+Doodad Sack,Misc,3,3,at least 20 player health,,no
+Downpour,Combat,2,3,,,no
+Drizzle,Combat,0,0,less than 10 gold,,no
+Drought,Risky,1,1,only if you're on no streak or a loss streak,streak,yes
+Early Fix,Misc,0,0,,item,no
+Essence Theft,Risky,1,1,Coven trait active,,no
+Experienced,GoldXP,1,0,,xp,yes
+Fellowship,Combat,3,3,,,no
+Fertilize,Risky,1,1,,xp,yes
+Flash Fire,Shop,1,1,Inferno trait active,reroll,yes
+Flip Frenzy,Risky,1,0,,gold,yes
+Flood,Risky,1,1,only if you're on no streak or a win streak,streak,yes
+Flow,Combat,3,3,,,no
+Forest Guide,Champion,6,5,,champion,no
+Forest Mage,Misc,1,1,during the first 8 seconds of planning,,no
+Forest Twins,Champion,4,5,,champion,no
+Found Friend,Combat,0,0,,,no
+Freeroller,Shop,2,2,,reroll,yes
+Giant Growth,Combat,4,4,,,no
+Giant's Aura,Combat,3,3,at least 1 itemized tanks on board,,no
+Golden Goose,GoldXP,1,1,at least 20 player health,gold;champion,yes
+Golden Road,Risky,2,2,,gold,yes
+Good Loss,Risky,4,4,,xp,yes
+Grandmaster,Champion,18,14,,champion,no
+Greater Chaos,Misc,4,4,,,no
+Grove Armor,Combat,0,0,less than 10 gold,,no
+Grow Up,GoldXP,7,7,,xp,yes
+Hand of Baron,Combat,4,4,Riftbeast trait active,,no
+Healing Pool,Misc,2,2,at least 10 missing player health,,no
+Health Potion,Misc,1,1,,item,no
+Heated Rivalry,Champion,3,3,,champion,no
+Heroic Sacrifice,Combat,5,,2 or more champions with 3+ items,,no
+Hero of Prophecy,Champion,35,33,at least 35 gold; at least 50 player health; level 10 or higher,champion,no
+Hero's Entrance,Combat,2,4,at least 1 champion on the bench,item,no
+Hireling,Combat,2,5,,item,no
+Homing Fireflies,Combat,2,2,2 or more casters on board,,no
+Hugify,Combat,1,1,,,no
+Hummingbird,Combat,1,1,,,no
+Idle Craftsman,Item,4,2,at least 1 item components,item,no
+Improved Reach,Combat,1,1,at least 1 itemized fighters on board,,no
+Infliction,Combat,4,4,,,no
+Iron Core,Combat,1,1,,,no
+Ironwood,Combat,2,2,,,no
+Journeyman,Champion,6,5,,champion,no
+Jungling,Shop,4,3,Riftbeast trait active,,no
+Killer's Regret,Combat,1,1,,,no
+Killing Frenzy,Combat,2,2,at least 1 itemized fighters on board,,no
+Knick-Knack Bag,Misc,1,2,at least 20 player health,,no
+Knick-Knack Jar,Misc,0,0,at least 20 player health,,no
+Knick-Knack Sack,Misc,3,3,at least 20 player health,,no
+Late Bloomer,Combat,4,4,,,no
+Lesser Chaos,Misc,1,1,,,no
+Life Debt,GoldXP,0,0,at least 70 missing player health,gold,yes
+Lightning Storm,Combat,3,3,,,no
+Lightning Strike,Combat,1,1,,,no
+Living Soil,Combat,2,2,,,no
+Lost Travelers,Champion,3,4,,gold;champion,yes
+Lucky 7,Shop,7,7,,reroll,yes
+Major Gambit,Risky,3,3,at least 20 player health,gold,yes
+Major Polymorph,Risky,0,0,during the first 2 seconds of planning,,no
+Mana Potion,Misc,1,1,,item,no
+Mana-Rich Soil,Combat,2,2,at least 1 itemized casters on board,,no
+Marksmen's Gale,Combat,2,2,at least 1 itemized marksmen on board,,no
+Marksmen's Marks,Combat,3,3,at least 1 itemized marksmen on board,,no
+Mercenary Force,Combat,3,3,at least 30 gold,gold,yes
+Middle Path,Shop,4,3,,reroll,yes
+Minor Blood Ritual,Misc,3,3,at least 3 player health,hp_cost;champion,yes
+Minor Gambit,Risky,1,1,Coven trait inactive,gold,yes
+Minor Polymorph,Risky,0,0,during the first 2 seconds of planning,,no
+Mitosis,Champion,1,0,,champion,no
+Moonlight Ritual,Combat,2,3,at least 1 2-star 1 or 2-cost champion,,no
+Moonrise,Combat,2,2,Lunar trait active,,no
+Nature's Ally,Combat,2,2,,,no
+Nature's Wrath,Combat,1,1,5 or more champions with 1+ items; Elderwood trait inactive,item,no
+Payday,Risky,3,3,,gold,yes
+Peddler,Item,0,0,at least 10 gold,gold;item,yes
+Petrified Dummy,Combat,2,2,,,no
+Petrify Shields,Combat,1,1,,,no
+Phantom Armor,Combat,2,2,,,no
+Phantom Emblem,Combat,2,1,,item,no
+Phantom Gloves,Combat,3,3,,,no
+Phantom Splash,Combat,2,2,,,no
+Phantom Vest,Combat,2,2,,,no
+Plated Shields,Combat,2,2,,,no
+Pocket Change,GoldXP,1,1,,gold,yes
+Polymorph,Risky,0,0,during the first 2 seconds of planning,,no
+Potioncraft,Misc,2,2,,item,no
+Potted Lifebloom,Combat,1,0,Elderwood trait active,,no
+Potted Stonebark,Combat,1,0,Elderwood trait active,,no
+Preppers,Combat,2,2,at least 2 stacking items,item,no
+Prolific Power,Combat,0,0,,,no
+Propagate,Champion,2,1,,champion,no
+Quicken,Combat,2,2,,,no
+Radiantize,Combat,3,3,,item,no
+Rain,Combat,1,1,,,no
+Refreshing Light,Shop,6,5,Solar trait active,reroll;champion,yes
+Regeneration,Combat,3,3,,,no
+Resistant,Combat,2,2,,,no
+Returning Friend,Combat,0,0,less than 10 gold,,no
+Revenge,Combat,2,2,,,no
+Ride the Wave,Shop,3,3,during the first 20 seconds of planning; at least 20 gold,reroll,yes
+Rolling Bones,Shop,3,3,,reroll,yes
+Roly-Polys,Shop,3,3,,reroll,yes
+Room for a Shroom,GoldXP,0,0,less than 10 gold,,yes
+Salvager,Misc,0,0,,item,no
+Scrappy,Combat,3,3,,item,no
+Search Party,Shop,1,0,at least 10 gold,,no
+Sinister Deal,Misc,0,0,at least 4 player health,gold;hp_cost,yes
+Slow Study,GoldXP,2,2,,xp,yes
+Smurfing,Champion,6,5,,champion,no
+Snacktime!,Combat,2,2,Sprykin trait active,,no
+Solar Gift,Champion,6,4,Solar trait active,champion,no
+Solitude's Cloak,Combat,2,2,Sunbeam and Moonbeam are inactive,,no
+Stand Alone,Combat,2,2,Elderwood trait inactive; Lunar trait inactive; Greenfather trait inactive,,no
+Starfall,Shop,1,0,at least 10 gold,reroll,yes
+Starting Town,Shop,2,1,,reroll,yes
+Stealthy,Combat,0,0,2 or more fighters on board,,no
+Sunfire Sorcery,Combat,2,2,,,no
+Supercritical,Combat,2,2,at least 1 allied champion has Precision,,no
+Take One With Ya,Risky,1,1,,xp,yes
+Tattered Armor,Combat,1,1,,,no
+Terraforming,Misc,2,2,Greenfather trait active,,no
+Thingamajig Bag,Misc,1,1,at least 20 player health,,no
+Thingamajig Jar,Misc,0,1,at least 20 player health,,no
+Thingamajig Sack,Misc,3,3,at least 20 player health,,no
+Three Me,Champion,10,8,,champion,no
+Tiger's Visit,Combat,3,2,Primal trait active,,no
+Training Yard,Combat,3,3,,item,no
+Treetop Archers,Combat,3,3,,,no
+Tremors,Combat,3,3,,,no
+Trophy Hunter,Risky,2,0,Rival trait active,,no
+Truce,GoldXP,0,0,,gold,yes
+Turtle's Visit,Combat,3,2,Primal trait active,,no
+Ultra Ascension,Combat,1,1,,,no
+Verdant Vitality,Combat,0,0,less than 10 gold,,no
+Wrapped in Thorns,Combat,2,2,2 or more tanks on board,,no
+Yordle Spirit,Combat,2,2,,,no

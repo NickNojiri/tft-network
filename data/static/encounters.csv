@@ -1,0 +1,20 @@
+host_champion,encounter,effect_type,effect_summary,econ_related
+Amumu,Golden Prelude,augment_tier,first augment is gold,no
+Ashe,Cheaper Levels,xp,levels cost 2 less XP,yes
+Azir,Howling Abyss,units,start with 5 random 1-costs,yes
+Draven,Final Showdown,gold,final two players get 70 gold,yes
+Elder Dragon,Prismatic Party,augment_tier,all augments prismatic,no
+Ivern,Golden Finale,augment_tier,last augment is gold,no
+Karma,Prismatic Finisher,augment_tier,last augment is prismatic,no
+Kayle,Reroll Subscription,reroll,free rerolls each stage,yes
+Kobuko,Gold Subscription,gold,random gold each stage (same for all players),yes
+LeBlanc,Upgraded Start,units,start with a 2-star champion,yes
+Leona,Golden Gala,augment_tier,all augments gold,no
+Lux,Emblem Ensemble,items,start with 3 random emblems,no
+Morgana,Prismatic Opener,augment_tier,first augment is prismatic,no
+Ornn,Item Forge,items,everyone starts with 2 completed item anvils,no
+Sivir,Component Anvils,items,start with 2 component anvils,no
+Teemo,Scouting Party,augment_reroll,+1 augment reroll,no
+Tristana,3 Cost Start,units,start with a random 3-cost,yes
+Warwick,2 Cost Start,units,start with a random 2-cost,yes
+Yunara,Completed Item Anvil,items,start with a completed item anvil,no

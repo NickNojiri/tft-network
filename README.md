@@ -107,13 +107,18 @@ src/tftnet/
   analysis/econ_sim.py         economy simulation, streak gold on vs off
   vod/                         Gemini schemas, prompts, client, checks, pipeline
   figures.py, bundle.py, cli.py
-data/static/                   Set 18 champions, abilities, traits, items, augments (Mobalytics)
+data/static/                   Set 18 champions, abilities, traits, items, augments, Wisps, encounters,
+                               meta comps (Mobalytics)
 docs/                          plan, research, findings (fill in), VOD protocol, team plan, report outline
 ```
 
 ## Known gaps
 
-- `data/static/wisps_partial.csv` has 29 of ~200 Wisps. Run `python -m tftnet static cdragon` on a normal
-  internet connection to pull the full list from Community Dragon.
+- `data/static/wisps.csv` has all 177 Wisps from Mobalytics (patch 18.6). `mentions` and `econ_related` are
+  rough keyword tags from each Wisp's text, not a judgment; check the yes rows by hand before using them.
+- `data/static/encounters.csv` lists the 19 game-start Encounters. Several change the economy (gold, XP,
+  rerolls, starting units), so treat the encounter as a control in economy analyses if the match data has it.
+- `data/static/meta_comps.csv` holds Mobalytics' 43 curated comps with their S/A/B/C tier. The tier is the
+  site's editorial label, not a match statistic. Useful as named reference comps for labelling.
 - Not yet run against live APIs: ranked queue id, `game_version` to 18.x mapping, Riot unit id format,
   and Gemini accuracy on TFT footage. `docs/findings.md` lists each check.
