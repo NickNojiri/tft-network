@@ -147,13 +147,14 @@ class SoldUnit(Answer):
 
 class ShopAction(Answer):
     """One shop action in a zoomed planning phase. A flat list beside the rounds, not nested in them: nested
-    per-frame lists came back near-empty in pass B."""
+    per-frame lists came back near-empty in pass B. Plain ints and no maxItems: with bounds here and maxItems
+    400 on the list, Gemini refused the schema as having too many states (2026-11-16)."""
     stage: str
     t: Optional[str] = Field(None, description="Video time, MM:SS")
     action: Action = Field(description="reroll, buy_xp, buy (a champion), sell (a unit), buy_wisp")
     unit: Optional[str] = Field(None, description="Champion bought or unit sold; null otherwise")
-    stars: Optional[Stars] = Field(None, description="Star level of a sold unit; null otherwise")
-    gold_after: Optional[Gold] = Field(None, description="Gold shown right after the action")
+    stars: Optional[int] = Field(None, description="Star level of a sold unit; null otherwise")
+    gold_after: Optional[int] = Field(None, description="Gold shown right after the action")
 
 
 class ZoomRound(Answer):
@@ -181,5 +182,5 @@ class ZoomRound(Answer):
 
 class Zooms(Answer):
     rounds: list[ZoomRound]
-    actions: list[ShopAction] = Field(default_factory=list, json_schema_extra={"maxItems": 400},
+    actions: list[ShopAction] = Field(default_factory=list,
                                       description="Every shop action in every listed round, in time order")

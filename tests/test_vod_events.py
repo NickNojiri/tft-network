@@ -263,6 +263,23 @@ def test_schema_rejection_skips_to_generate_content(tmp_path):
     assert seen == ["ia", "gc"] and api == "generate_content"
 
 
+def test_too_complex_schema_tries_no_other_mode(tmp_path):
+    from tftnet.vod.gemini import SchemaTooComplexError
+
+    c = Clock(NOON_PT)
+    gem = _gem(tmp_path, c)
+    seen = []
+
+    def refuse(*a):
+        seen.append(1)
+        raise InteractionsBadRequest("The specified schema produces a constraint that has too many states for serving.")
+
+    gem._ia_parts = gem._gc_parts = refuse
+    with pytest.raises(SchemaTooComplexError):
+        gem.ask_parts([VideoPart("u", 0, 60, 0.2)], "p", Zooms, "high")
+    assert seen == [1] and gem.budget.used_today() == 1  # the live run spent a second request on generate_content
+
+
 def test_parts_limit_is_reported_not_retried(tmp_path):
     from tftnet.vod.gemini import PartsLimitError
 
@@ -515,8 +532,10 @@ def test_answer_schemas_require_every_field_but_parse_leniently():
         s = m.model_json_schema()
         assert sorted(s["required"]) == sorted(s["properties"]), m.__name__
     z = Zooms.model_json_schema()
-    assert z["properties"]["actions"]["maxItems"] == 400
-    assert z["$defs"]["ShopAction"]["properties"]["action"]["enum"] == ["reroll", "buy_xp", "buy", "sell", "buy_wisp"]
+    assert "maxItems" not in z["properties"]["actions"]  # with it Gemini refused the schema (too many states)
+    act = z["$defs"]["ShopAction"]["properties"]
+    assert act["action"]["enum"] == ["reroll", "buy_xp", "buy", "sell", "buy_wisp"]
+    assert "minimum" not in str(act)
     assert ZoomRound.model_validate({"stage": "2-1"}).shop_followed is None
     assert ShopAction.model_validate({"stage": "2-1", "action": "peek"}).action == "peek"  # ignored later
 

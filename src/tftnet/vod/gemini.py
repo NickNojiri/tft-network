@@ -78,6 +78,13 @@ class PartsLimitError(RuntimeError):
     """The API refused the number of video parts in one request."""
 
 
+class SchemaTooComplexError(RuntimeError):
+    """Structured output refused the response schema as too complex ("too many states for serving"). Every
+    mode would refuse it, so no other mode is tried. Seen 2026-11-16 with maxItems 400 on the zoom action list."""
+
+
+_TOO_COMPLEX = re.compile(r"(?i)too many states|constraint that has too many")
+
 _PARTS_LIMIT = re.compile(r"(?i)(too many|at most|maximum|exceed\w*|limit)\W+(\w+\W+){0,6}(video|part|file)s?"
                           r"|(video|part|file)s?\W+(\w+\W+){0,6}(too many|at most|maximum|exceed\w*|limit)")
 
@@ -248,6 +255,8 @@ class GeminiVideo:
             except DailyLimitReached:
                 raise
             except Exception as e:
+                if _TOO_COMPLEX.search(str(e)) and _is_400(e):
+                    raise SchemaTooComplexError(f"{schema.__name__} refused: {self._clean(e)[:300]}") from None
                 if _PARTS_LIMIT.search(str(e)) and _is_400(e):
                     raise PartsLimitError(f"{len(parts)} video parts refused: {self._clean(e)[:200]}") from None
                 if not is_unsupported(e):
