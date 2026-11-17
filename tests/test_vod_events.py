@@ -203,6 +203,47 @@ def test_rejected_frames_only_falls_back_and_is_remembered(tmp_path):
     assert again.mode() == {"api": "interactions", "frames_only": False}  # no second failed probe
 
 
+class InteractionsBadRequest(Exception):
+    """Shaped like the Interactions client's error: status_code, not code."""
+
+    def __init__(self, msg):
+        super().__init__(f"Error code: 400 - {{'error': {{'code': 'invalid_request', 'message': '{msg}'}}}}")
+        self.status_code = 400
+
+
+def test_interactions_style_400_also_falls_back(tmp_path):
+    c = Clock(NOON_PT)
+    gem = _gem(tmp_path, c)
+    seen = []
+
+    def ia(parts, prompt, schema, res, frames_only):
+        seen.append(frames_only)
+        if frames_only:
+            raise InteractionsBadRequest("content_layers is only available in v1beta")
+        return '{"rounds": []}', {}, "interactions"
+
+    gem._ia_parts = ia
+    gem.ask_parts([VideoPart("u", 0, 60, 0.2)], "p", Segmentation, "low")
+    assert seen == [True, False]
+
+
+def test_frames_only_interactions_call_uses_v1beta(tmp_path):
+    c = Clock(NOON_PT)
+    gem = _gem(tmp_path, c)
+    cap = {}
+
+    class Resp:
+        output_text = '{"rounds": []}'
+        usage = None
+
+    gem.client = SimpleNamespace(interactions=SimpleNamespace(create=lambda **kw: cap.update(kw) or Resp()))
+    gem._ia_parts([VideoPart("u", 0, 60, 0.2)], "p", Segmentation, "low", True)
+    assert cap["api_version"] == "v1beta" and cap["input"][0]["processing"]["content_layers"] == ["frames"]
+    cap.clear()
+    gem._ia_parts([VideoPart("u", 0, 60, 0.2)], "p", Segmentation, "low", False)
+    assert "api_version" not in cap and "content_layers" not in cap["input"][0]["processing"]
+
+
 def test_schema_rejection_skips_to_generate_content(tmp_path):
     c = Clock(NOON_PT)
     gem = _gem(tmp_path, c)

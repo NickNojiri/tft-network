@@ -64,7 +64,7 @@ def _offset(s: float) -> str:
 def classify_error(e: Exception) -> str:
     """'daily' (stop for today), 'rate' (wait a minute), 'retry' (backoff) or 'fatal'."""
     msg = str(e)
-    code = next((v for v in (getattr(e, "code", None), getattr(e, "status_code", None)) if isinstance(v, int)), None)
+    code = _status(e)
     if code == 429 or "RESOURCE_EXHAUSTED" in msg:
         return "daily" if re.search(r"(?i)per.?day|daily", msg) else "rate"
     if code in (500, 502, 503, 504) or re.search(r"UNAVAILABLE|DEADLINE_EXCEEDED|INTERNAL|(?i:overloaded|high demand)", msg):
@@ -82,10 +82,18 @@ _PARTS_LIMIT = re.compile(r"(?i)(too many|at most|maximum|exceed\w*|limit)\W+(\w
                           r"|(video|part|file)s?\W+(\w+\W+){0,6}(too many|at most|maximum|exceed\w*|limit)")
 
 
+def _status(e: Exception) -> int | None:
+    """HTTP status: generate_content errors carry .code, Interactions errors carry .status_code."""
+    return next((v for v in (getattr(e, "code", None), getattr(e, "status_code", None)) if isinstance(v, int)), None)
+
+
+def _is_400(e: Exception) -> bool:
+    return _status(e) == 400 or bool(re.search(r"INVALID_ARGUMENT|invalid_request", str(e)))
+
+
 def is_unsupported(e: Exception) -> bool:
     """A 400 about the request's shape (an unknown field, an unsupported option)."""
-    code = getattr(e, "code", None)
-    return (code == 400 or "INVALID_ARGUMENT" in str(e)) and not _PARTS_LIMIT.search(str(e))
+    return _is_400(e) and not _PARTS_LIMIT.search(str(e))
 
 
 # Multi-part request modes in order of preference: (api, frames only). generate_content without audio is
@@ -236,7 +244,7 @@ class GeminiVideo:
             except DailyLimitReached:
                 raise
             except Exception as e:
-                if _PARTS_LIMIT.search(str(e)) and (getattr(e, "code", None) == 400 or "INVALID_ARGUMENT" in str(e)):
+                if _PARTS_LIMIT.search(str(e)) and _is_400(e):
                     raise PartsLimitError(f"{len(parts)} video parts refused: {self._clean(e)[:200]}") from None
                 if not is_unsupported(e):
                     raise
@@ -278,9 +286,12 @@ class GeminiVideo:
                 proc["content_layers"] = ["frames"]
             items.append({"type": "video", "uri": p.url, "processing": proc, "resolution": resolution})
         items.append({"type": "text", "text": prompt})
-        resp = self.client.interactions.create(
-            model=self.model, input=items,
-            response_format={"type": "text", "mime_type": "application/json", "schema": schema.model_json_schema()})
+        kw = dict(model=self.model, input=items,
+                  response_format={"type": "text", "mime_type": "application/json", "schema": schema.model_json_schema()})
+        if frames_only:
+            # content_layers exists only in v1beta; the client's default Interactions route is v1 (live run 2026-11-16)
+            kw["api_version"] = "v1beta"
+        resp = self.client.interactions.create(**kw)
         return resp.output_text, _ia_usage(resp), "interactions"
 
     # ------------------------------------------------------------------ single clip (original pipeline)
