@@ -137,6 +137,25 @@ def test_classify_error():
     assert classify_error(APIError(400, "INVALID_ARGUMENT bad schema")) == "fatal"
 
 
+def test_dropped_connections_are_retried_not_fatal():
+    httpx = pytest.importorskip("httpx2")  # google-genai 3.4.0's transport
+
+    # 2026-11-17: the cloud proxy restarted mid-request and the run stopped on this
+    assert classify_error(httpx.ReadError("[Errno 104] Connection reset by peer")) == "retry"
+    assert classify_error(httpx.RemoteProtocolError("Server disconnected without sending a response.")) == "retry"
+    assert classify_error(httpx.ReadTimeout("timed out")) == "retry"
+    assert classify_error(ConnectionResetError(104, "Connection reset by peer")) == "retry"
+    try:  # wrapped by another layer: found through the exception chain
+        try:
+            raise httpx.ReadError("[Errno 104] Connection reset by peer")
+        except httpx.ReadError as inner:
+            raise RuntimeError("request failed") from inner
+    except RuntimeError as outer:
+        assert classify_error(outer) == "retry"
+    assert classify_error(RuntimeError("Connection reset by peer")) == "retry"
+    assert classify_error(ValueError("could not parse JSON")) == "fatal"
+
+
 def test_retries_503_with_backoff_and_counts_every_attempt(tmp_path, monkeypatch):
     monkeypatch.setattr("tftnet.vod.gemini.random.uniform", lambda a, b: 0.0)  # no jitter
     c = Clock(NOON_PT)

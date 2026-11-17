@@ -9,7 +9,7 @@ Two entry points:
   it is only the last fallback (with audio). The mode that worked is saved in caps_path.
 
 Every request goes through an optional Budget (daily counter + per-minute limits) and is retried on
-503/500 with exponential backoff and jitter, and on 429 after a minute. Real token counts from
+503/500 and dropped connections with exponential backoff and jitter, and on 429 after a minute. Real token counts from
 usage_metadata are written to a UsageLog. Field names checked against google-genai 3.4.0.
 """
 from __future__ import annotations
@@ -69,9 +69,32 @@ def classify_error(e: Exception) -> str:
         return "daily" if re.search(r"(?i)per.?day|daily", msg) else "rate"
     if code in (500, 502, 503, 504) or re.search(r"UNAVAILABLE|DEADLINE_EXCEEDED|INTERNAL|(?i:overloaded|high demand)", msg):
         return "retry"
-    if isinstance(e, (ConnectionError, TimeoutError)):
+    if _is_network_error(e):
         return "retry"
     return "fatal"
+
+
+_NETWORK_MSG = re.compile(r"(?i)connection (reset|aborted|refused)|errno 10[34]|server disconnected|"
+                          r"peer closed connection|remote ?protocol ?error")
+
+
+def _is_network_error(e: BaseException) -> bool:
+    """A dropped or refused connection, from Python or the SDK's transport (google-genai 3.4.0 uses httpx2;
+    older versions httpx), anywhere in the exception chain. Seen 2026-11-17: the cloud session's proxy
+    restarted mid-request and the SDK raised "[Errno 104] Connection reset by peer", which used to stop the run."""
+    transport: tuple = ()
+    for mod in ("httpx2", "httpx"):
+        try:
+            transport += (__import__(mod).TransportError,)
+        except (ImportError, AttributeError):
+            pass
+    seen, cur = set(), e
+    while cur is not None and id(cur) not in seen:
+        seen.add(id(cur))
+        if isinstance(cur, (ConnectionError, TimeoutError) + transport) or _NETWORK_MSG.search(str(cur)):
+            return True
+        cur = cur.__cause__ or cur.__context__
+    return False
 
 
 class PartsLimitError(RuntimeError):
