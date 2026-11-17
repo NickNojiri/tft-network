@@ -48,3 +48,72 @@ class RoundCheck(BaseModel):
     hp: Optional[int] = None
     level: Optional[int] = None
     confidence: Optional[str] = Field(None, description="high, medium, or low")
+
+
+# ---------------------------------------------------------------- event-sampling pipeline (vod/events.py)
+class SegRound(BaseModel):
+    stage: str = Field(description="Stage-round at top center, like '3-2'")
+    part: Optional[int] = Field(None, description="Number of the video part where this round's planning starts")
+    planning: str = Field(description="Video time the planning phase starts, MM:SS or HH:MM:SS")
+    combat: Optional[str] = Field(None, description="Video time combat starts, MM:SS or HH:MM:SS")
+
+
+class Segmentation(BaseModel):
+    """Pass A: round boundaries only, from low-resolution frames of the whole game."""
+    rounds: list[SegRound]
+    game_end: Optional[str] = Field(None, description="Video time the streamer's game ends")
+    final_placement: Optional[int] = Field(None, description="Streamer's final placement 1-8 if shown")
+
+
+class FrameRead(BaseModel):
+    t: Optional[str] = Field(None, description="Video time of this frame, MM:SS")
+    gold: Optional[int] = None
+    hp: Optional[int] = None
+    level: Optional[int] = None
+    xp: Optional[int] = Field(None, description="XP toward next level, left number of 'xp/max'")
+    xp_max: Optional[int] = Field(None, description="Right number of 'xp/max'")
+
+
+class SnapRound(BaseModel):
+    """Pass B: a few frames at planning start and a few right before combat."""
+    stage: str
+    start: list[FrameRead] = Field(default_factory=list, description="Frames from the start of planning")
+    end: list[FrameRead] = Field(default_factory=list, description="Frames from just before combat")
+    wisp_slot: Optional[str] = Field(None, description="'wisp', 'champion', or null if the shop is not visible")
+    wisp_name: Optional[str] = None
+    wisp_bought: Optional[bool] = None
+    augment: Optional[str] = None
+
+
+class Snapshots(BaseModel):
+    rounds: list[SnapRound]
+
+
+class SoldUnit(BaseModel):
+    name: str
+    stars: Optional[int] = 1
+
+
+class ZoomRound(BaseModel):
+    """Pass C: every frame of one planning phase at high resolution, for the gold accounting."""
+    stage: str
+    gold_start: Optional[int] = None
+    gold_end: Optional[int] = None
+    hp: Optional[int] = None
+    level_start: Optional[int] = None
+    xp_start: Optional[int] = None
+    xp_max_start: Optional[int] = None
+    level_end: Optional[int] = None
+    xp_end: Optional[int] = None
+    xp_buys: Optional[int] = Field(None, description="Times the Buy XP button was pressed")
+    rerolls: Optional[int] = Field(None, description="Times the shop was rerolled")
+    units_bought: list[str] = Field(default_factory=list, description="Champion names bought from the shop")
+    units_sold: list[SoldUnit] = Field(default_factory=list)
+    wisp_slot: Optional[str] = Field(None, description="'wisp', 'champion', or null if not visible")
+    wisp_name: Optional[str] = None
+    wisp_bought: Optional[bool] = None
+    augment: Optional[str] = None
+
+
+class Zooms(BaseModel):
+    rounds: list[ZoomRound]

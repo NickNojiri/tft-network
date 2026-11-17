@@ -52,3 +52,57 @@ def round_check_prompt(stage: str, streamer_name: str) -> str:
         "At the start of the planning phase, read the streamer's gold, HP and level.\n"
         f"{HUD_LAYOUT}\n{RULES} Also rate your confidence as high, medium or low."
     )
+
+
+# ---------------------------------------------------------------- event-sampling pipeline (vod/events.py)
+HIDDEN = ("Use null for any number that is hidden or unreadable (menu open, cursor over it, transition). "
+          "Never guess and never write 0 for a hidden number.")
+
+
+def segmentation_prompt(streamer_name: str) -> str:
+    return (
+        "The video parts above are consecutive pieces of ONE Teamfight Tactics (Set 18) game from streamer "
+        f"'{streamer_name}'. Each part's label gives its range in the original video. Frames are sparse and low "
+        "resolution: read only the stage-round indicator at the top center and whether units are fighting.\n"
+        "List EVERY round in order, including stage 1 and the carousel rounds (x-4): the stage-round, the part "
+        "number, the video time the planning phase starts (the stage-round changes and the shop refreshes) and "
+        "the video time combat starts (null for carousels). Give times on the original video's clock, inside "
+        "that part's range. Report a round once even if it crosses two parts. Ignore intros, ads, menus and "
+        "anything that is not this game. Report when the game ends and the final placement if shown."
+    )
+
+
+def snapshot_prompt(streamer_name: str, wisp_names: list[str]) -> str:
+    n = allowed_names()
+    return (
+        f"The video parts above are clips from one Teamfight Tactics (Set 18) game from streamer '{streamer_name}'. "
+        "Each part's label lists the rounds it covers with their planning and combat start times.\n"
+        f"{HUD_LAYOUT} The XP numbers 'xp/max' are next to the level.\n"
+        "For every listed round return: 'start', one reading per frame from the first seconds of planning, and "
+        "'end', one reading per frame from the last seconds before combat. A reading is the frame's video time, "
+        f"gold, the streamer's HP, level, xp and xp_max. {HIDDEN}\n"
+        "wisp_slot: what the rightmost shop slot shows at the start of planning, 'wisp' or 'champion', null if "
+        "the shop is not visible. If it is a Wisp, give its name and whether the streamer bought it. On augment "
+        "rounds give the augment picked. Use only names from the lists.\n"
+        f"Augments: {', '.join(n['augments'])}\n"
+        f"Wisps: {', '.join(wisp_names) if wisp_names else '(no list; copy the name shown)'}"
+    )
+
+
+def zoom_prompt(streamer_name: str, wisp_names: list[str]) -> str:
+    n = allowed_names()
+    return (
+        f"The video parts above are planning phases from one Teamfight Tactics (Set 18) game from streamer "
+        f"'{streamer_name}', at full frame rate and resolution. Each part's label names the round(s).\n"
+        f"{HUD_LAYOUT} The XP numbers 'xp/max' are next to the level. The shop is the row of five cards at the "
+        "bottom, with Buy XP and Reroll buttons on its left.\n"
+        "For every listed round, follow the streamer's gold through the planning phase and report: gold at the "
+        "start and right before combat; HP; level, xp and xp_max at the start; level and xp at the end; how many "
+        "times Buy XP was pressed; how many rerolls; every champion bought from the shop (once per purchase); "
+        "every unit sold with its star level; what the rightmost shop slot held at the start ('wisp' or "
+        f"'champion'), the Wisp's name and whether it was bought; the augment picked if any. {HIDDEN}\n"
+        "Use only names from the lists.\n"
+        f"Champions: {', '.join(n['champions'])}\n"
+        f"Augments: {', '.join(n['augments'])}\n"
+        f"Wisps: {', '.join(wisp_names) if wisp_names else '(no list; copy the name shown)'}"
+    )

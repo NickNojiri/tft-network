@@ -25,3 +25,29 @@ agreement; all labeled games give Gemini's accuracy (`vod build` prints it).
 3. `vod check` then `vod review` (Gemini re-reads flagged rounds).
 4. Hand-label 3-5 games, `vod build`. Report the accuracy table in the paper.
 5. Optional: `vod boards`. Compare last-round boards against the Riot API for unit and item accuracy.
+
+## Event sampling (`--mode events`, for the free tier)
+The free tier allows 20 requests a day, 5 a minute and 250K input tokens a minute. `vod extract --mode events`
+spends about 3 requests per game instead of one per 10-minute clip:
+
+| Pass | What it reads | Sampling | Requests |
+|---|---|---|---|
+| A segmentation | stage-round, planning and combat start times | whole game, low res, 1 frame / 5 s, 10-minute labelled parts | 1 |
+| B snapshots | gold, HP, level, XP, Wisp slot, augment | 3 frames at planning start + 3 before combat, medium res, all rounds as parts of one request | 1 |
+| C zooms | spending: XP buys, units bought and sold, rerolls, Wisp bought | full planning phase, high res, 1 fps, up to 10 rounds | 1 |
+
+Pass C goes to rounds where a number was unreadable, a check failed, gold dropped by 10 or more, a Wisp was
+offered, or a Wisp was expected but the shop was hidden. Wisps sit in every other shop and a reroll counts as a
+shop, so the expected pattern is recomputed from each sighting. Audio is not sent (`content_layers=[FRAMES]`).
+
+Each round gets `gold_conf`, `hp_conf`, `level_conf` and an overall `confidence`: `exact` (two or more frames
+agree, or the high-res zoom read it), `inferred` (one frame, or frames disagree) or `missing`. Missing numbers
+stay empty, never 0. Zoomed rounds get gold accounting: rerolls = (gold spent + gold from sales - 4 per XP buy -
+unit costs - Wisp cost) / 2, flagged `acct_odd`, `acct_negative` or `gold_mismatch` (more than 2 gold off
+Gemini's own reroll count).
+
+The daily counter is in `data/vods/raw/gemini_budget.json` and stops at 19 requests (`GEMINI_DAILY_LIMIT`). When
+it stops, rerun the same command the next day: finished passes are cached, or pass `--wait-for-reset`.
+`vod usage` prints requests and real token counts per game and pass from `data/vods/raw/token_log.jsonl`.
+
+Keep `--mode full` (the default) until events mode matches the hand labels at least as well.
