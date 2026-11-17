@@ -49,8 +49,10 @@ medium and 253 at high. `--snap-parts 70` gives every round its own two short sn
 parts, but the answer degenerated (10 of 33 rounds). So an answer covering under half the rounds, or a refused part
 count, re-plans with 10.
 
-Each round gets `gold_conf`, `hp_conf`, `level_conf` and an overall `confidence`: `exact` (two or more frames
-agree, or the high-res zoom read it), `inferred` (one frame, or frames disagree) or `missing`. Missing numbers
+Snapshots use one flat reading per round: Gemini takes the value most frames show and says whether the start frames
+agreed. A per-frame list schema came back near-empty through Interactions twice. Each round gets `gold_conf`,
+`hp_conf`, `level_conf` and an overall `confidence`: `exact` (the frames agreed, or the high-res zoom read it),
+`inferred` (frames disagreed or agreement unknown) or `missing`. Missing numbers
 stay empty, never 0. Zoomed rounds get gold accounting: rerolls = (gold spent + gold from sales - 4 per XP buy -
 unit costs - Wisp cost) / 2, flagged `acct_odd`, `acct_negative` or `gold_mismatch` (more than 2 gold off
 Gemini's own reroll count).

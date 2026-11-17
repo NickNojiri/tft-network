@@ -27,7 +27,7 @@ from . import prompts
 from .gemini import PartsLimitError, VideoPart, estimate_tokens
 from .rounds import (XP_PER_BUY, consensus, gold_accounting, has_shop, parse_stage, round_type, sell_value,
                      stage_index, ts_seconds, validate, wisp_schedule, xp_gained)
-from .schema import Segmentation, Snapshots, Zooms
+from .schema import Segmentation, SnapshotsFlat, Zooms
 
 log = logging.getLogger(__name__)
 
@@ -280,10 +280,22 @@ def _wisp_status(slot) -> str:
     return "unseen"
 
 
+def _as_frames(sr: dict) -> dict:
+    """A flat snapshot round (Gemini already took the majority) in the per-frame shape, so one consensus path
+    serves both: frames_agree=true counts as two agreeing frames ('exact'), otherwise one ('inferred')."""
+    if sr.get("start") or sr.get("end") or not any(k in sr for k in ("gold_start", "gold_end", "hp")):
+        return sr
+    n = 2 if sr.get("frames_agree") else 1
+    start = {"gold": sr.get("gold_start"), "hp": sr.get("hp"), "level": sr.get("level_start"),
+             "xp": sr.get("xp_start"), "xp_max": sr.get("xp_max_start")}
+    end = {"gold": sr.get("gold_end"), "hp": None, "level": sr.get("level_end"), "xp": sr.get("xp_end")}
+    return {**sr, "start": [start] * n, "end": [end] * n}
+
+
 def snapshot_coverage(seg: pd.DataFrame, snaps: list[dict]) -> float:
     """Share of segmented rounds with at least one readable gold, HP or level in the snapshot answer."""
     got = set()
-    for sr in snaps:
+    for sr in map(_as_frames, snaps):
         p = parse_stage(sr.get("stage"))
         frames = (sr.get("start") or []) + (sr.get("end") or [])
         if p and any(f.get(k) is not None for f in frames for k in ("gold", "hp", "level")):
@@ -293,7 +305,7 @@ def snapshot_coverage(seg: pd.DataFrame, snaps: list[dict]) -> float:
 
 def summarize_snapshots(seg: pd.DataFrame, snaps: list[dict]) -> pd.DataFrame:
     by_stage: dict[str, list[dict]] = {}
-    for sr in snaps:
+    for sr in map(_as_frames, snaps):
         p = parse_stage(sr.get("stage"))
         if p:
             by_stage.setdefault(f"{p[0]}-{p[1]}", []).append(sr)
@@ -479,7 +491,7 @@ def extract_game(s: Settings, gem, g, cfg: EventConfig) -> tuple[pd.DataFrame, d
         try:
             snaps = []
             for k, b in enumerate(bs):
-                snaps += (call("B", k, b, prompt, Snapshots, cfg.snap_res).get("parsed") or {}).get("rounds", [])
+                snaps += (call("B", k, b, prompt, SnapshotsFlat, cfg.snap_res).get("parsed") or {}).get("rounds", [])
         except PartsLimitError as e:
             if cfg.snap_max_parts <= 10:
                 raise

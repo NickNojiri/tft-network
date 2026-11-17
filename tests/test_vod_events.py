@@ -9,7 +9,7 @@ from tftnet.vod import events as ev
 from tftnet.vod.budget import Budget, DailyLimitReached
 from tftnet.vod.gemini import GeminiVideo, VideoPart, classify_error
 from tftnet.vod.rounds import consensus, gold_accounting, wisp_schedule, xp_gained
-from tftnet.vod.schema import Segmentation, Snapshots, Zooms
+from tftnet.vod.schema import Segmentation, Snapshots, SnapshotsFlat, Zooms
 
 
 # ---------------------------------------------------------------- gold accounting
@@ -312,6 +312,18 @@ def test_snapshot_parts_fit_max_parts():
     assert "round 2-1" in many[0].label and "Part 1" in many[0].label
 
 
+def test_summarize_reads_per_frame_and_flat_answers():
+    seg = pd.DataFrame({"stage": ["2-1", "2-2"], "planning_s": [100.0, 180.0], "combat_s": [130.0, 210.0]})
+    per_frame = {"stage": "2-1", "start": [_frame("01:41", 26)] * 2 + [_frame("01:45", 27)],
+                 "end": [_frame("02:09", 20)] * 3}
+    flat = {"stage": "2-2", "gold_start": 30, "hp": 88, "level_start": 5, "gold_end": None, "frames_agree": False}
+    t = ev.summarize_snapshots(seg, [per_frame, flat]).set_index("stage")
+    assert (t.loc["2-1", "gold"], t.loc["2-1", "gold_conf"]) == (26, "exact")
+    assert (t.loc["2-2", "gold"], t.loc["2-2", "gold_conf"], t.loc["2-2", "hp_conf"]) == (30, "inferred", "inferred")
+    assert np.isnan(t.loc["2-2", "gold_end"]) and t.loc["2-2", "gold_end_conf"] == "missing"
+    assert ev.snapshot_coverage(seg, [per_frame, flat]) == 1.0
+
+
 def test_expected_stages():
     assert ev.expected_stages("2-3") == ["1-1", "1-2", "1-3", "1-4", "2-1", "2-2", "2-3"]
 
@@ -336,15 +348,16 @@ class StubGem:
                                {"stage": "2-3", "part": 1, "planning": "04:20", "combat": "04:50"},
                                {"stage": "2-5", "part": 1, "planning": "06:00", "combat": "06:30"}],
                     "final_placement": 3}
-        elif schema is Snapshots:
+        elif schema is SnapshotsFlat:
+            def flat(st, g0, g1, agree, xp_end=4, **kw):
+                return {"stage": st, "gold_start": g0, "hp": 90, "level_start": 5, "xp_start": 4, "xp_max_start": 20,
+                        "gold_end": g1, "level_end": 5, "xp_end": xp_end, "frames_agree": agree, **kw}
+
             data = {"rounds": [
-                {"stage": "2-1", "start": [_frame("01:41", 10)] * 3, "end": [_frame("02:09", 10)] * 3,
-                 "wisp_slot": "champion"},
-                {"stage": "2-2", "start": [_frame("03:01", 42)] * 3, "end": [_frame("03:29", 20, xp=8)] * 3,
-                 "wisp_slot": "wisp", "wisp_name": "All Ones"},
-                {"stage": "2-3", "start": [_frame("04:21", None)] * 3, "end": [_frame("04:49", 21)] * 3},
-                {"stage": "2-5", "start": [_frame("06:01", 26)] * 2 + [_frame("06:05", 27)],
-                 "end": [_frame("06:29", 26)] * 3, "wisp_slot": "champion"}]}
+                flat("2-1", 10, 10, True, wisp_slot="champion"),
+                flat("2-2", 42, 20, True, xp_end=8, wisp_slot="wisp", wisp_name="All Ones"),
+                flat("2-3", None, 21, None),
+                flat("2-5", 26, 26, False, wisp_slot="champion")]}
         else:
             stages = [p.label.split("Round ")[1].split(":")[0] for p in parts]
             rounds = []
@@ -366,7 +379,7 @@ def test_extract_game_three_requests_and_accounting(settings, monkeypatch):
     g = SimpleNamespace(game_id="g1", video_url="u", start_s=60, end_s=480, streamer_name="S")
     gem = StubGem()
     t, summ = ev.extract_game(settings, gem, g, ev.EventConfig())
-    assert [c[0] for c in gem.calls] == ["Segmentation", "Snapshots", "Zooms"]
+    assert [c[0] for c in gem.calls] == ["Segmentation", "SnapshotsFlat", "Zooms"]
     assert gem.calls[0][2] == "low" and gem.calls[1][2] == "high" and gem.calls[2][2] == "high"
     r = t.set_index("stage")
     # 2-2: 42 -> 20 = 22 spent; 1 XP buy (4) + Karma + Yorick (2) + free Wisp = 6; 16 left = 8 rerolls
@@ -375,8 +388,9 @@ def test_extract_game_three_requests_and_accounting(settings, monkeypatch):
     # 2-3: gold hidden in every frame -> stays empty, never 0
     assert np.isnan(r.loc["2-3", "gold"]) and r.loc["2-3", "gold_conf"] == "missing"
     assert r.loc["2-3", "confidence"] == "missing" and "unreadable" in r.loc["2-3", "zoom_reason"]
-    # 2-5: two frames say 26, one says 27
-    assert r.loc["2-5", "gold"] == 26 and r.loc["2-5", "gold_conf"] == "exact"
+    # frames agreed -> exact; Gemini says they didn't -> inferred
+    assert r.loc["2-1", "gold_conf"] == "exact"
+    assert r.loc["2-5", "gold"] == 26 and r.loc["2-5", "gold_conf"] == "inferred"
     assert r.loc["2-1", "wisp_expected"] == False and r.loc["2-2", "wisp_expected"] == True  # noqa: E712
     assert summ["requests_sent"] == 3 and summ["rounds_missing"] == ["1-1", "1-2", "1-3", "1-4", "2-4"]
     assert summ["passes"]["B"]["prompt_tokens"] == 5000
@@ -393,7 +407,7 @@ class LimitedGem(StubGem):
     def ask_parts(self, parts, prompt, schema, **kw):
         from tftnet.vod.gemini import PartsLimitError
 
-        if schema is Snapshots and len(parts) > 4:
+        if schema is SnapshotsFlat and len(parts) > 4:
             self.calls.append(("refused", len(parts), kw.get("resolution")))
             raise PartsLimitError("too many video parts")
         return super().ask_parts(parts, prompt, schema, **kw)
@@ -406,7 +420,7 @@ def test_snapshot_parts_refused_replans(settings, monkeypatch):
 
     class RefuseOver10(StubGem):
         def ask_parts(self, parts, prompt, schema, **kw):
-            if schema is Snapshots and len(parts) > 10:
+            if schema is SnapshotsFlat and len(parts) > 10:
                 self.calls.append(("refused", len(parts), None))
                 raise PartsLimitError("too many video parts")
             return super().ask_parts(parts, prompt, schema, **kw)
@@ -421,9 +435,9 @@ def test_snapshot_parts_refused_replans(settings, monkeypatch):
             gem.calls.append(("Segmentation", len(parts), kw.get("resolution")))
             m = Segmentation.model_validate({"rounds": seg_rounds})
             return m, m.model_dump_json(), "stub", {}
-        if schema is Snapshots and len(parts) <= 10:
+        if schema is SnapshotsFlat and len(parts) <= 10:
             gem.calls.append(("Snapshots", len(parts), kw.get("resolution")))
-            m = Snapshots.model_validate({"rounds": []})
+            m = SnapshotsFlat.model_validate({"rounds": []})
             return m, m.model_dump_json(), "stub", {}
         return orig(parts, prompt, schema, **kw)
 
@@ -452,9 +466,9 @@ def test_degenerate_snapshot_answer_replans_with_ten(settings, monkeypatch):
             calls.append((schema.__name__, len(parts)))
             if schema is Segmentation:
                 data = {"rounds": seg_rounds}
-            elif schema is Snapshots:
+            elif schema is SnapshotsFlat:
                 stages = [r["stage"] for r in seg_rounds][: 1 if len(parts) > 10 else 8]
-                data = {"rounds": [{"stage": st, "start": [_frame("00:00", 10)] * 2} for st in stages]}
+                data = {"rounds": [{"stage": st, "gold_start": 10, "frames_agree": True} for st in stages]}
             else:
                 data = {"rounds": []}
             m = schema.model_validate(data)
@@ -462,6 +476,6 @@ def test_degenerate_snapshot_answer_replans_with_ten(settings, monkeypatch):
 
     g = SimpleNamespace(game_id="g5", video_url="u", start_s=60, end_s=800, streamer_name="S")
     t, summ = ev.extract_game(settings, Degenerate(), g, ev.EventConfig(snap_max_parts=70))
-    assert [c for c in calls if c[0] == "Snapshots"] == [("Snapshots", 16), ("Snapshots", 8)]
+    assert [c for c in calls if c[0] == "SnapshotsFlat"] == [("SnapshotsFlat", 16), ("SnapshotsFlat", 8)]
     assert summ["passes"]["B"]["degenerate_parts"] == 70 and summ["passes"]["B"]["coverage"] == 1.0
     assert t["gold"].notna().all()

@@ -75,7 +75,8 @@ class FrameRead(BaseModel):
 
 
 class SnapRound(BaseModel):
-    """Pass B: a few frames at planning start and a few right before combat."""
+    """Pass B, per-frame form: a few frames at planning start and a few right before combat. Gemini gave
+    near-empty answers with these nested lists through Interactions (2026-11-16); kept to read old caches."""
     stage: str
     start: list[FrameRead] = Field(default_factory=list, description="Frames from the start of planning")
     end: list[FrameRead] = Field(default_factory=list, description="Frames from just before combat")
@@ -87,6 +88,28 @@ class SnapRound(BaseModel):
 
 class Snapshots(BaseModel):
     rounds: list[SnapRound]
+
+
+class SnapRoundFlat(BaseModel):
+    """Pass B, flat form (same shape as the zooms, which read well): Gemini takes the majority of the frames."""
+    stage: str
+    gold_start: Optional[int] = None
+    hp: Optional[int] = None
+    level_start: Optional[int] = None
+    xp_start: Optional[int] = None
+    xp_max_start: Optional[int] = None
+    gold_end: Optional[int] = None
+    level_end: Optional[int] = None
+    xp_end: Optional[int] = None
+    frames_agree: Optional[bool] = Field(None, description="true if every readable start frame showed the same gold")
+    wisp_slot: Optional[str] = Field(None, description="'wisp', 'champion', or null if the shop is not visible")
+    wisp_name: Optional[str] = None
+    wisp_bought: Optional[bool] = None
+    augment: Optional[str] = None
+
+
+class SnapshotsFlat(BaseModel):
+    rounds: list[SnapRoundFlat]
 
 
 class SoldUnit(BaseModel):
