@@ -133,6 +133,15 @@ def _gc_usage(resp) -> dict:
     return {k: v for k, v in d.items() if v is not None}
 
 
+def _continuation(resp) -> dict:
+    """{'continuation': (interaction id, token)} when the answer stopped at the decode limit, else {}."""
+    status = str(getattr(resp, "status", "") or "").lower()
+    token = getattr(resp, "continuation_token", None)
+    if token and status.endswith("requires_continuation"):
+        return {"continuation": (getattr(resp, "id", None), token)}
+    return {}
+
+
 def _ia_usage(resp) -> dict:
     u = getattr(resp, "usage", None)
     if u is None:
@@ -149,15 +158,22 @@ class GeminiVideo:
     def __init__(self, api_key: str, model: str, resolution: str = "high", budget: Budget | None = None,
                  usage_log: UsageLog | None = None, api: str = "interactions",
                  sleep: Callable[[float], None] = time.sleep, max_attempts: int = 5, backoff_s: float = 8.0,
-                 caps_path: Path | None = None, max_output_tokens: int = 40960):
-        # The cap includes thinking (13K in the 2026-11-16 zoom answer). Bounded ints and the action list's
-        # maxItems keep answers from running away, so it only needs to stop a runaway, not fit a tight answer.
+                 caps_path: Path | None = None, max_output_tokens: int = 40960, request_timeout_s: float = 900.0,
+                 max_hops: int = 3):
+        # The cap includes thinking (13K in the 2026-11-16 zoom answer). Bounded ints keep answers from running
+        # away, so it only needs to stop a runaway, not fit a tight answer.
         if not api_key:
             raise RuntimeError("GEMINI_API_KEY is empty. Get a free key in Google AI Studio and add it to .env.")
         from google import genai  # imported lazily so the rest of the repo works without it
 
         self.genai = genai
-        self.client = genai.Client(api_key=api_key)
+        # Every attempt must go through _send, so the budget counts it: the SDK's own retries (4 by default, on
+        # 408/409/429/5xx) and its automatic continuation hops (each re-sends the whole input) are turned off.
+        # A zoom request hung for 15+ minutes with them on (2026-11-16).
+        self.http_options = genai.types.HttpOptions(timeout=int(request_timeout_s * 1000),
+                                                    retry_options=genai.types.HttpRetryOptions(attempts=1))
+        self.client = genai.Client(api_key=api_key, http_options=self.http_options)
+        self.max_hops = max_hops
         self._scrub = api_key
         self.model = model
         self.resolution = resolution
@@ -252,6 +268,8 @@ class GeminiVideo:
             try:
                 text, usage, used = self._send(lambda: call(parts, prompt, schema, resolution, frames_only), est,
                                                {**tag, "api": api, "audio": not frames_only})
+                text, usage = self._continue(text, usage, schema, frames_only, est,
+                                             {**tag, "api": api, "audio": not frames_only})
             except DailyLimitReached:
                 raise
             except Exception as e:
@@ -306,8 +324,39 @@ class GeminiVideo:
         if frames_only:
             # content_layers exists only in v1beta; the client's default Interactions route is v1 (live run 2026-11-16)
             kw["api_version"] = "v1beta"
-        resp = self.client.interactions.create(**kw)
-        return resp.output_text, _ia_usage(resp), "interactions"
+        resp = self.client.interactions.create(**kw, automatic_continuation=False)
+        return resp.output_text, {**_ia_usage(resp), **_continuation(resp)}, "interactions"
+
+    def _continue(self, text: str, usage: dict, schema, frames_only: bool, est: int, tag: dict) -> tuple[str, dict]:
+        """An Interactions answer that stopped at the per-request decode limit resumes here, one counted request
+        per hop (each re-bills the input), up to max_hops. A still-unfinished answer is returned as is; it
+        won't parse and is saved as .failed.json."""
+        hops = 0
+        while usage.get("continuation") and hops < self.max_hops:
+            iid, token = usage.pop("continuation")
+            hops += 1
+            log.warning("Gemini answer needs continuation; hop %d/%d", hops, self.max_hops)
+            kw = dict(model=self.model, previous_interaction_id=iid, continuation_token=token,
+                      response_format={"type": "text", "mime_type": "application/json",
+                                       "schema": schema.model_json_schema()},
+                      generation_config={"max_output_tokens": self.max_output_tokens})
+            if frames_only:
+                kw["api_version"] = "v1beta"
+
+            def hop(kw=kw):
+                resp = self.client.interactions.create(**kw, automatic_continuation=False)
+                return resp.output_text, {**_ia_usage(resp), **_continuation(resp)}, "interactions"
+
+            more, u, _ = self._send(hop, est, {**tag, "hop": hops})
+            text = (text or "") + (more or "")
+            usage = {**{k: (usage.get(k) or 0) + (u.get(k) or 0) for k in set(usage) | set(u)
+                        if k != "continuation" and isinstance(usage.get(k, u.get(k)), (int, float))},
+                     **({"continuation": u["continuation"]} if u.get("continuation") else {})}
+        if usage.pop("continuation", None):
+            usage["unfinished"] = True
+        if hops:
+            usage["hops"] = hops + 1
+        return text, usage
 
     # ------------------------------------------------------------------ single clip (original pipeline)
     def ask_video(self, url: str, prompt: str, schema: Type[BaseModel], start_s: float | None = None,
@@ -318,7 +367,8 @@ class GeminiVideo:
                               True, prompt)
         tag = {"pass": "single", "frames": int(max(dur, 0) * fps), "resolution": self.resolution}
         try:
-            text, _, api = self._send(lambda: self._interactions(url, prompt, schema, start_s, end_s, fps), est, tag)
+            text, usage, api = self._send(lambda: self._interactions(url, prompt, schema, start_s, end_s, fps), est, tag)
+            text, _ = self._continue(text, usage, schema, False, est, tag)
         except DailyLimitReached:
             raise
         except Exception as e:
@@ -366,16 +416,16 @@ class GeminiVideo:
                       response_format={"type": "text", "mime_type": "application/json",
                                        "schema": schema.model_json_schema()})
         try:
-            resp = self.client.interactions.create(**kwargs)
+            resp = self.client.interactions.create(**kwargs, automatic_continuation=False)
         except Exception as e:  # structured output + video untested together; retry without schema
             if "schema" in str(e).lower() or "response_format" in str(e).lower():
                 log.warning("Structured output rejected (%s); retrying with JSON-in-prompt", self._clean(e)[:200])
                 kwargs.pop("response_format")
                 kwargs["input"][0]["text"] += "\nReturn ONLY JSON matching this schema:\n" + json.dumps(schema.model_json_schema())
-                resp = self.client.interactions.create(**kwargs)
+                resp = self.client.interactions.create(**kwargs, automatic_continuation=False)
             else:
                 raise
-        return resp.output_text, _ia_usage(resp), "interactions"
+        return resp.output_text, {**_ia_usage(resp), **_continuation(resp)}, "interactions"
 
     def _generate_content(self, url, prompt, schema, start_s, end_s, fps) -> tuple[str, dict, str]:
         types = self.genai.types

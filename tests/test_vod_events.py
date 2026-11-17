@@ -263,6 +263,44 @@ def test_schema_rejection_skips_to_generate_content(tmp_path):
     assert seen == ["ia", "gc"] and api == "generate_content"
 
 
+def test_sdk_retries_and_auto_continuation_are_off(tmp_path):
+    c = Clock(NOON_PT)
+    gem = _gem(tmp_path, c)
+    assert gem.http_options.retry_options.attempts == 1 and gem.http_options.timeout == 900_000
+    cap = {}
+
+    class Resp:
+        output_text = '{"rounds": []}'
+        usage = None
+
+    gem.client = SimpleNamespace(interactions=SimpleNamespace(create=lambda **kw: cap.update(kw) or Resp()))
+    gem._ia_parts([VideoPart("u", 0, 60, 0.2)], "p", Segmentation, "low", True)
+    assert cap["automatic_continuation"] is False
+
+
+def test_continuation_hops_are_counted_by_the_budget(tmp_path):
+    c = Clock(NOON_PT)
+    gem = _gem(tmp_path, c)
+    calls = []
+    answers = [('{"rounds": [{"stage": "2-1", "planning": "01:00"}', "requires_continuation", "tok1"),
+               (', {"stage": "2-2", "planning": "02:00"}]}', "completed", None)]
+
+    def create(**kw):
+        calls.append(kw)
+        text, status, token = answers[len(calls) - 1]
+        return SimpleNamespace(output_text=text, status=status, continuation_token=token, id="ia-1",
+                               usage=SimpleNamespace(total_input_tokens=1000, total_output_tokens=50,
+                                                     total_thought_tokens=0, total_cached_tokens=0,
+                                                     total_tokens=1050, input_tokens_by_modality=None))
+
+    gem.client = SimpleNamespace(interactions=SimpleNamespace(create=create))
+    parsed, _, _, usage = gem.ask_parts([VideoPart("u", 0, 60, 0.2)], "p", Segmentation, "low")
+    assert [r.stage for r in parsed.rounds] == ["2-1", "2-2"]
+    assert calls[1]["continuation_token"] == "tok1" and calls[1]["previous_interaction_id"] == "ia-1"
+    assert "input" not in calls[1] and calls[1]["automatic_continuation"] is False
+    assert gem.budget.used_today() == 2 and usage["hops"] == 2 and usage["prompt_tokens"] == 2000
+
+
 def test_too_complex_schema_tries_no_other_mode(tmp_path):
     from tftnet.vod.gemini import SchemaTooComplexError
 
