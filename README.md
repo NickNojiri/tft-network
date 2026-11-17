@@ -69,6 +69,10 @@ python -m tftnet vod boards          # optional: board state at 2-1, 3-2, 4-1, 4
 python -m tftnet h4
 ```
 
+On the Gemini free tier (20 requests/day), use `vod extract --mode events`: about 3 requests per game,
+with a daily counter that stops and resumes the next day. `vod usage` shows requests and tokens per pass.
+Details in `docs/vod_protocol.md`.
+
 ### Wrap up
 
 ```bash

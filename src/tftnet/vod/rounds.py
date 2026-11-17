@@ -96,6 +96,150 @@ def derive(rounds: pd.DataFrame) -> pd.DataFrame:
     return r
 
 
+# ---------------------------------------------------------------- gold accounting (event-sampling pipeline)
+# Shop prices are long-standing TFT rules. The pipeline prefers the 'xp/max' numbers read off the HUD
+# (and the table those readings imply, see observed_xp_table) and only falls back to XP_TO_NEXT.
+XP_BUY_GOLD = 4
+XP_PER_BUY = 4
+REROLL_GOLD = 2
+GOLD_TOLERANCE = 2
+# 7->8, 8->9, 9->10 are from Riot's patch 18.2 notes (7->8 cut 60 -> 56; 8->9 and 9->10 cut to 64 and put back
+# to 68 by the Sept 14, 2026 mid-patch). Levels 1-6 are pre-Set-18 values, UNVERIFIED for Set 18.
+XP_TO_NEXT = {1: 2, 2: 2, 3: 6, 4: 10, 5: 20, 6: 36, 7: 56, 8: 68, 9: 68}
+
+
+def sell_value(cost: int, stars: int | None) -> int:
+    """Gold back for selling a unit. UNVERIFIED for Set 18: 2+ cost units lose 1 gold once starred up."""
+    stars = int(stars or 1)
+    v = int(cost) * 3 ** (stars - 1)
+    return v - 1 if stars >= 2 and cost >= 2 else v
+
+
+def xp_gained(level0, xp0, level1, xp1, xp_max0=None, table: dict | None = None) -> float:
+    """XP gained between two HUD readings. NaN if a reading is missing. `table` (level -> XP to next, e.g.
+    from observed_xp_table) overrides XP_TO_NEXT level by level."""
+    vals = [level0, xp0, level1, xp1]
+    if any(v is None or pd.isna(v) for v in vals):
+        return np.nan
+    level0, xp0, level1, xp1 = (int(v) for v in vals)
+    if level1 == level0:
+        return float(xp1 - xp0)
+    if level1 < level0:
+        return np.nan
+    tab = {**XP_TO_NEXT, **(table or {})}
+    first = int(xp_max0) if xp_max0 is not None and pd.notna(xp_max0) else tab.get(level0, np.nan)
+    gain = first - xp0 + xp1
+    for lv in range(level0 + 1, level1):
+        gain += tab.get(lv, np.nan)
+    return float(gain)
+
+
+def observed_xp_table(levels, xp_maxes, min_reads: int = 2) -> dict[int, int]:
+    """Level -> XP to next level, from HUD 'xp/max' readings: the most common max per level, kept only when
+    at least `min_reads` readings agree on it."""
+    out = {}
+    df = pd.DataFrame({"level": levels, "xp_max": xp_maxes}).dropna()
+    for lv, g in df.groupby("level"):
+        top = g["xp_max"].value_counts()
+        if top.iloc[0] >= min_reads:
+            out[int(lv)] = int(top.index[0])
+    return out
+
+
+def gold_accounting(gold_start, gold_end, xp_buys=None, unit_cost=None, wisp_cost=0, sold_value=0,
+                    rerolls_read=None) -> dict:
+    """Split one planning phase's spending into XP buys, unit buys, the Wisp and rerolls.
+
+    rerolls = (gold_start - gold_end + sold - 4*xp_buys - units - wisp) / 2. A negative or non-integer
+    result means a reading is wrong (or something the formula ignores, like an augment paying gold).
+    When Gemini also counted rerolls, a gold gap over GOLD_TOLERANCE between the two is flagged.
+    """
+    out = {"spend": np.nan, "rerolls": np.nan, "acct_flags": ""}
+    if gold_start is None or gold_end is None or pd.isna(gold_start) or pd.isna(gold_end):
+        out["acct_flags"] = "acct_no_gold"
+        return out
+    spend = float(gold_start) - float(gold_end) + float(sold_value or 0)
+    out["spend"] = spend
+    parts = [xp_buys, unit_cost, wisp_cost]
+    if any(p is None or pd.isna(p) for p in parts):
+        out["acct_flags"] = "acct_partial"
+        return out
+    rest = spend - XP_BUY_GOLD * float(xp_buys) - float(unit_cost) - float(wisp_cost)
+    flags = []
+    rerolls = rest / REROLL_GOLD
+    if rerolls < -GOLD_TOLERANCE / REROLL_GOLD:
+        flags.append("acct_negative")
+    elif abs(rest) % REROLL_GOLD > 1e-9:
+        flags.append("acct_odd")
+    if rerolls_read is not None and pd.notna(rerolls_read) and abs(rest - REROLL_GOLD * float(rerolls_read)) > GOLD_TOLERANCE:
+        flags.append("gold_mismatch")
+    out["rerolls"] = rerolls
+    out["acct_flags"] = ";".join(flags)
+    return out
+
+
+def consensus(values) -> tuple[float, str]:
+    """Majority of the frame readings. 'exact' when at least two frames agree, 'inferred' when only one frame
+    was readable or frames disagree (median used), 'missing' when none was. Missing stays NaN, never 0."""
+    v = [int(x) for x in values if x is not None and pd.notna(x)]
+    if not v:
+        return np.nan, "missing"
+    counts = pd.Series(v).value_counts()
+    if counts.iloc[0] >= 2 and (len(counts) == 1 or counts.iloc[0] > counts.iloc[1]):
+        return float(counts.index[0]), "exact"
+    return float(np.median(v)), "inferred"
+
+
+def has_shop(stage: str) -> bool:
+    return round_type(stage) != "carousel"
+
+
+def wisp_schedule(stages: list[str], status: list[str], rerolls: list | None = None) -> list[bool | None]:
+    """Whether the first shop of each round should hold a Wisp.
+
+    Wisps sit in the rightmost slot of every other shop (docs/research.md), and a reroll is a new shop, so the
+    pattern flips each round unless the player rerolled an odd number of times. Each round where the slot was
+    actually seen ('offered' or 'absent') re-anchors the pattern; two offered rounds in a row with an even
+    shop count means Wisps are in every shop (Blossom 5). Rounds before the first sighting are filled backward.
+    Returns None for rounds without a shop and when nothing was ever seen.
+    """
+    n = len(stages)
+    rerolls = list(rerolls) if rerolls is not None else [None] * n
+    shop_idx = [i for i in range(n) if has_shop(stages[i])]
+    seen = [i for i in shop_idx if status[i] in ("offered", "absent")]
+    out: list[bool | None] = [None] * n
+    if not seen:
+        return out
+
+    def flips(i) -> bool:  # does the pattern flip between round i's first shop and the next round's?
+        r = rerolls[i]
+        return r is None or pd.isna(r) or int(round(r)) % 2 == 0
+
+    every_shop = False
+    exp = None
+    prev = None
+    for i in shop_idx:
+        if exp is not None and prev is not None and not every_shop:
+            exp = (not exp) if flips(prev) else exp
+        if status[i] in ("offered", "absent"):
+            obs = status[i] == "offered"
+            known_even = prev is not None and rerolls[prev] is not None and pd.notna(rerolls[prev]) and flips(prev)
+            if obs and known_even and status[prev] == "offered":
+                every_shop = True
+            if not obs:
+                every_shop = False
+            exp = obs
+        if every_shop:
+            exp = True
+        out[i] = exp
+        prev = i
+    first = shop_idx.index(seen[0])
+    for k in range(first - 1, -1, -1):
+        i, nxt = shop_idx[k], shop_idx[k + 1]
+        out[i] = (not out[nxt]) if flips(i) else out[nxt]
+    return out
+
+
 def game_features(r: pd.DataFrame) -> dict:
     """One row of per-game features for H4/H5."""
     r = r.reset_index(drop=True)

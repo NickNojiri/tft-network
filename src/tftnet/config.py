@@ -35,6 +35,11 @@ class Settings:
 
     gemini_api_key: str = field(default_factory=lambda: os.environ.get("GEMINI_API_KEY", ""))
     gemini_model: str = field(default_factory=lambda: os.environ.get("GEMINI_MODEL", "gemini-3.8-flash"))
+    # Free tier: 20 requests/day, 5/minute, 250K input tokens/minute. The counter stops at 19 so one
+    # request stays free for a manual check.
+    gemini_daily_limit: int = field(default_factory=lambda: int(os.environ.get("GEMINI_DAILY_LIMIT", "19")))
+    gemini_rpm: int = field(default_factory=lambda: int(os.environ.get("GEMINI_RPM", "5")))
+    gemini_tpm: int = field(default_factory=lambda: int(os.environ.get("GEMINI_TPM", "250000")))
 
     tft_set: int = field(default_factory=lambda: int(os.environ.get("TFT_SET", "18")))
     # Ranked queue id is UNVERIFIED (expected 1100). Empty string means accept any queue and report counts.
