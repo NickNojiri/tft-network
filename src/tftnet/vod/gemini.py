@@ -29,10 +29,10 @@ from .budget import Budget, DailyLimitReached, UsageLog
 
 log = logging.getLogger(__name__)
 
-# Estimates, only used to split requests under the tokens/minute cap and to pace them. The real counts
-# are in the token log; update these from it. Gemini 3 docs list ~70 tokens/frame at low and ~280 at
-# high; medium is set high on purpose until measured.
-TOKENS_PER_FRAME = {"low": 70, "medium": 258, "high": 280}
+# Estimates, only used to split requests under the tokens/minute cap and to pace them. Measured on
+# gemini-3.6-flash via Interactions, frames only, 2026-11-16: low 65.8, medium 44.2, high 252.9 video
+# tokens per frame. Rounded up here.
+TOKENS_PER_FRAME = {"low": 70, "medium": 70, "high": 260}
 AUDIO_TOKENS_PER_S = 32
 _GC_RES = {"low": "MEDIA_RESOLUTION_LOW", "medium": "MEDIA_RESOLUTION_MEDIUM", "high": "MEDIA_RESOLUTION_HIGH"}
 
@@ -252,9 +252,10 @@ class GeminiVideo:
                             self._clean(e)[:160])
                 last = e
                 continue
-            if (api, frames_only) != start and not audio:
+            if not audio:
                 self.api, self.exclude_audio = api, frames_only
-                self._save_caps()
+                if self._caps().get(self.model) != self.mode():
+                    self._save_caps()
             return self.parse(text, schema), text, used, {**usage, "audio_excluded": frames_only}
         raise last  # every mode was rejected
 

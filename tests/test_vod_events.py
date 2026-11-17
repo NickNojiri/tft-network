@@ -367,7 +367,7 @@ def test_extract_game_three_requests_and_accounting(settings, monkeypatch):
     gem = StubGem()
     t, summ = ev.extract_game(settings, gem, g, ev.EventConfig())
     assert [c[0] for c in gem.calls] == ["Segmentation", "Snapshots", "Zooms"]
-    assert gem.calls[0][2] == "low" and gem.calls[1][2] == "medium" and gem.calls[2][2] == "high"
+    assert gem.calls[0][2] == "low" and gem.calls[1][2] == "high" and gem.calls[2][2] == "high"
     r = t.set_index("stage")
     # 2-2: 42 -> 20 = 22 spent; 1 XP buy (4) + Karma + Yorick (2) + free Wisp = 6; 16 left = 8 rerolls
     assert r.loc["2-2", "zoomed"] and r.loc["2-2", "rerolls"] == 8 and r.loc["2-2", "xp_buys"] == 1
@@ -437,3 +437,31 @@ def test_snapshot_parts_refused_replans(settings, monkeypatch):
     with pytest.raises(PartsLimitError):  # refusing even 10 parts is not retried
         ev.extract_game(settings, LimitedGem(), SimpleNamespace(game_id="g4", video_url="u", start_s=60,
                                                                   end_s=480, streamer_name="S"), ev.EventConfig())
+
+
+def test_degenerate_snapshot_answer_replans_with_ten(settings, monkeypatch):
+    monkeypatch.setattr(ev, "_wisps", lambda s: ([], {}))
+    seg_rounds = [{"stage": f"{2 + i // 7}-{1 + i % 7}", "part": 1, "planning": ev.fmt_ts(100 + 80 * i),
+                   "combat": ev.fmt_ts(130 + 80 * i)} for i in range(8)]
+    calls = []
+
+    class Degenerate:
+        model = "stub"
+
+        def ask_parts(self, parts, prompt, schema, **kw):
+            calls.append((schema.__name__, len(parts)))
+            if schema is Segmentation:
+                data = {"rounds": seg_rounds}
+            elif schema is Snapshots:
+                stages = [r["stage"] for r in seg_rounds][: 1 if len(parts) > 10 else 8]
+                data = {"rounds": [{"stage": st, "start": [_frame("00:00", 10)] * 2} for st in stages]}
+            else:
+                data = {"rounds": []}
+            m = schema.model_validate(data)
+            return m, m.model_dump_json(), "stub", {}
+
+    g = SimpleNamespace(game_id="g5", video_url="u", start_s=60, end_s=800, streamer_name="S")
+    t, summ = ev.extract_game(settings, Degenerate(), g, ev.EventConfig(snap_max_parts=70))
+    assert [c for c in calls if c[0] == "Snapshots"] == [("Snapshots", 16), ("Snapshots", 8)]
+    assert summ["passes"]["B"]["degenerate_parts"] == 70 and summ["passes"]["B"]["coverage"] == 1.0
+    assert t["gold"].notna().all()

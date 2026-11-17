@@ -42,14 +42,17 @@ class EventConfig:
     seg_part_s: float = 600.0
     snap_fps: float = 0.5
     snap_frames: int = 3
-    snap_res: str = "medium"
+    snap_res: str = "high"     # medium (44 tokens/frame) misread HP in the first live run; high is 253
     snap_requests: int = 1
     zoom_fps: float = 1.0
     zoom_res: str = "high"
     zoom_requests: int = 1
     zoom_drop: int = 10
     max_parts: int = 10       # video parts per request (A, C). Gemini documents up to 10 videos per request.
-    snap_max_parts: int = 10  # B: two windows per round needs ~70; above 10 is untested. Refused -> back to 10.
+    # B: two windows per round needs ~70 parts. The API accepted 63 (2026-11-16) but the answer degenerated
+    # (repeated digits, 10 of 33 rounds). Refused, or under half the rounds answered -> back to 10.
+    snap_max_parts: int = 10
+    min_snap_coverage: float = 0.5
     audio: bool = False
     token_cap: int = 240_000  # stay under the 250K tokens/minute free-tier cap
 
@@ -277,6 +280,17 @@ def _wisp_status(slot) -> str:
     return "unseen"
 
 
+def snapshot_coverage(seg: pd.DataFrame, snaps: list[dict]) -> float:
+    """Share of segmented rounds with at least one readable gold, HP or level in the snapshot answer."""
+    got = set()
+    for sr in snaps:
+        p = parse_stage(sr.get("stage"))
+        frames = (sr.get("start") or []) + (sr.get("end") or [])
+        if p and any(f.get(k) is not None for f in frames for k in ("gold", "hp", "level")):
+            got.add(f"{p[0]}-{p[1]}")
+    return len(got & set(seg["stage"])) / max(1, len(seg))
+
+
 def summarize_snapshots(seg: pd.DataFrame, snaps: list[dict]) -> pd.DataFrame:
     by_stage: dict[str, list[dict]] = {}
     for sr in snaps:
@@ -466,13 +480,23 @@ def extract_game(s: Settings, gem, g, cfg: EventConfig) -> tuple[pd.DataFrame, d
             snaps = []
             for k, b in enumerate(bs):
                 snaps += (call("B", k, b, prompt, Snapshots, cfg.snap_res).get("parsed") or {}).get("rounds", [])
-            break
         except PartsLimitError as e:
             if cfg.snap_max_parts <= 10:
                 raise
             log.warning("%s; replanning snapshots with 10 parts per request", e)
-            call.stats.setdefault("B", {})["parts_refused"] = cfg.snap_max_parts
+            call.stats["B"]["parts_refused"] = cfg.snap_max_parts
             cfg = replace(cfg, snap_max_parts=10)
+            continue
+        cover = snapshot_coverage(seg, snaps)
+        call.stats["B"]["coverage"] = round(cover, 2)
+        if cover >= cfg.min_snap_coverage or cfg.snap_max_parts <= 10:
+            if cover < cfg.min_snap_coverage:
+                log.warning("%s: snapshots answered only %.0f%% of rounds", g.game_id, 100 * cover)
+            break
+        log.warning("%s: %d-part snapshot answer covered %.0f%% of rounds; replanning with 10 parts",
+                    g.game_id, len(parts), 100 * cover)
+        call.stats["B"]["degenerate_parts"] = cfg.snap_max_parts
+        cfg = replace(cfg, snap_max_parts=10)
     t = summarize_snapshots(seg, snaps)
     t["wisp_expected"] = wisp_schedule(list(t["stage"]), list(t["wisp_status"]))
 

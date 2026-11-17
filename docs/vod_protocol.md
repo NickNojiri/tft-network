@@ -33,7 +33,7 @@ spends about 3 requests per game instead of one per 10-minute clip:
 | Pass | What it reads | Sampling | Requests |
 |---|---|---|---|
 | A segmentation | stage-round, planning and combat start times | whole game, low res, 1 frame / 5 s, 10-minute labelled parts | 1 |
-| B snapshots | gold, HP, level, XP, Wisp slot, augment | 3 frames at planning start + 3 before combat, medium res, all rounds as parts of one request | 1 |
+| B snapshots | gold, HP, level, XP, Wisp slot, augment | 3 frames at planning start + 3 before combat, high res, all rounds packed into 10 parts of one request | 1 |
 | C zooms | spending: XP buys, units bought and sold, rerolls, Wisp bought | full planning phase, high res, 1 fps, up to 10 rounds | 1 |
 
 Pass C goes to rounds where a number was unreadable, a check failed, gold dropped by 10 or more, a Wisp was
@@ -44,8 +44,10 @@ Audio is not sent: multi-part requests go through the Interactions API with `pro
 and a resolution per video part. In the first live run, generate_content rejected `content_layers` with a 400, and
 its global `media_resolution` did not change tokens per frame. If a mode is rejected, the next one is tried
 (Interactions with audio, then generate_content with audio). The mode that works is saved in
-`data/vods/raw/gemini_caps.json`. `--snap-parts 70` gives every round its own two short snapshot windows; if the
-API refuses that many parts, it re-plans with 10.
+`data/vods/raw/gemini_caps.json`. Measured on gemini-3.6-flash, frames only: 66 video tokens per frame at low, 44 at
+medium and 253 at high. `--snap-parts 70` gives every round its own two short snapshot windows. The API accepted 63
+parts, but the answer degenerated (10 of 33 rounds). So an answer covering under half the rounds, or a refused part
+count, re-plans with 10.
 
 Each round gets `gold_conf`, `hp_conf`, `level_conf` and an overall `confidence`: `exact` (two or more frames
 agree, or the high-res zoom read it), `inferred` (one frame, or frames disagree) or `missing`. Missing numbers
