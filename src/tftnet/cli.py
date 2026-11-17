@@ -444,8 +444,9 @@ def main(argv=None):
                         "events: segmentation + snapshots + zooms, about 3 requests per game")
     c.add_argument("--full", dest="mode", action="store_const", const="full", help="same as --mode full")
     c.add_argument("--seg-fps", type=float, help="events: segmentation frames per second (default 0.2)")
-    c.add_argument("--snap-res", choices=["low", "medium", "high"], help="events: snapshot resolution (medium)")
-    c.add_argument("--zoom-fps", type=float, help="events: zoom frames per second (default 1)")
+    c.add_argument("--snap-res", choices=["low", "medium", "high"], help="events: snapshot resolution (high)")
+    c.add_argument("--zoom-fps", type=float,
+                   help="events: highest zoom frames per second, lowered to fit the token cap (default 2)")
     c.add_argument("--zoom-requests", type=int, help="events: zoom requests per game (default 1)")
     c.add_argument("--max-parts", type=int, help="events: video parts per request, passes A and C (default 10)")
     c.add_argument("--snap-parts", dest="snap_max_parts", type=int,

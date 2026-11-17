@@ -33,8 +33,8 @@ spends about 3 requests per game instead of one per 10-minute clip:
 | Pass | What it reads | Sampling | Requests |
 |---|---|---|---|
 | A segmentation | stage-round, planning and combat start times | whole game, low res, 1 frame / 5 s, 10-minute labelled parts | 1 |
-| B snapshots | gold, HP, level, XP, Wisp slot, augment | 3 frames at planning start + 3 before combat, high res, all rounds packed into 10 parts of one request | 1 |
-| C zooms | spending: XP buys, units bought and sold, rerolls, Wisp bought | full planning phase, high res, 1 fps, up to 10 rounds | 1 |
+| B snapshots | gold, HP, level, XP, Wisp slot, augment; final placement | 3 frames at planning start + 3 before combat, high res, all rounds packed into 9 parts of one request, plus the end of the game at 1 fps | 1 |
+| C zooms | every shop action (reroll, Buy XP, buy, sell, Wisp) | full planning phase padded 4 s each side, high res, up to 2 fps (lowered to fit the token cap), up to 10 rounds | 1 |
 
 Pass C goes to rounds where a number was unreadable, a check failed, gold dropped by 10 or more, a Wisp was
 offered, or a Wisp was expected but the shop was hidden. Wisps sit in every other shop and a reroll counts as a
@@ -55,7 +55,21 @@ agreed. A per-frame list schema came back near-empty through Interactions twice.
 `inferred` (frames disagreed or agreement unknown) or `missing`. Missing numbers
 stay empty, never 0. Zoomed rounds get gold accounting: rerolls = (gold spent + gold from sales - 4 per XP buy -
 unit costs - Wisp cost) / 2, flagged `acct_odd`, `acct_negative` or `gold_mismatch` (more than 2 gold off
-Gemini's own reroll count).
+the rerolls in Gemini's action log).
+
+Every field of the B and C answer schemas is required (nullable fields may be null). With optional fields, the
+first zoom answer left out every shop field. Pass C returns a flat action list beside the rounds: one entry per
+reroll, XP buy, purchase, sale or Wisp, with its time and the gold after it. The counts come from that list. A round
+with no actions counts as zero actions only when Gemini says it followed the shop the whole phase
+(`shop_followed`); otherwise it is flagged `zoom_no_shop_read` and nothing is computed. `shop_from` says whether a
+round's counts came from the log or the round's own fields. `zoom_count_mismatch` means the round's reroll count
+disagrees with its log.
+
+Final placement comes from the end-of-game part in pass B; A's low-res read is the fallback, and a human value in
+the manifest wins over both. XP to the next level: 7->8 is 56 and 8->9 and 9->10 are 68 (patch 18.2 notes,
+including the Sept 14 mid-patch); levels 1-6 are UNVERIFIED pre-Set-18 values. The pipeline prefers the HUD's
+'xp/max' reading, then the per-level max most snapshots agree on (`xp_table_observed` in the summary), then this
+table.
 
 The daily counter is in `data/vods/raw/gemini_budget.json` and stops at 19 requests (`GEMINI_DAILY_LIMIT`). When
 it stops, rerun the same command the next day: finished passes are cached, or pass `--wait-for-reset`.

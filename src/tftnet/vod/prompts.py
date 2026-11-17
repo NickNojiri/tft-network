@@ -72,11 +72,15 @@ def segmentation_prompt(streamer_name: str) -> str:
     )
 
 
-def snapshot_prompt(streamer_name: str, wisp_names: list[str]) -> str:
+def snapshot_prompt(streamer_name: str, wisp_names: list[str], end_part: bool = False) -> str:
     n = allowed_names()
+    end = ("The last part, labelled 'End of the game', shows how the game ends: from the end-of-game screen or "
+           "the player list, report final_placement, the streamer's final placement 1-8 (1 if they won the "
+           "game), or null if it is not shown. It has no rounds to report.\n") if end_part else ""
     return (
         f"The video parts above are clips from one Teamfight Tactics (Set 18) game from streamer '{streamer_name}'. "
         "Each part's label lists the rounds it covers with their planning and combat start times.\n"
+        f"{end}"
         f"{HUD_LAYOUT} The XP numbers 'xp/max' are next to the level.\n"
         "For every listed round, read the frames at the start of planning and report gold_start, the streamer's "
         "HP, level_start, xp_start and xp_max_start, taking the value most frames show; frames_agree is true if "
@@ -90,18 +94,30 @@ def snapshot_prompt(streamer_name: str, wisp_names: list[str]) -> str:
     )
 
 
-def zoom_prompt(streamer_name: str, wisp_names: list[str]) -> str:
+def zoom_prompt(streamer_name: str, wisp_names: list[str], fps: float | None = None) -> str:
     n = allowed_names()
+    rate = f"at high resolution, {fps:g} frames per second" if fps else "at high resolution"
     return (
         f"The video parts above are planning phases from one Teamfight Tactics (Set 18) game from streamer "
-        f"'{streamer_name}', at full frame rate and resolution. Each part's label names the round(s).\n"
+        f"'{streamer_name}', {rate}. Each part's label names the round and its planning and combat times.\n"
         f"{HUD_LAYOUT} The XP numbers 'xp/max' are next to the level. The shop is the row of five cards at the "
-        "bottom, with Buy XP and Reroll buttons on its left.\n"
-        "For every listed round, follow the streamer's gold through the planning phase and report: gold at the "
-        "start and right before combat; HP; level, xp and xp_max at the start; level and xp at the end; how many "
-        "times Buy XP was pressed; how many rerolls; every champion bought from the shop (once per purchase); "
-        "every unit sold with its star level; what the rightmost shop slot held at the start ('wisp' or "
-        f"'champion'), the Wisp's name and whether it was bought; the augment picked if any. {HIDDEN}\n"
+        "bottom, with the Buy XP and Reroll buttons on its left; the gold number is just above it.\n"
+        "Watch the gold number and the shop frame by frame through each listed planning phase.\n"
+        "actions: every shop action the streamer takes, in time order, one entry per action, with the round, "
+        "the video time and the gold shown right after it:\n"
+        "- reroll: all five shop cards change at once and gold drops by 2\n"
+        "- buy_xp: gold drops by 4 and the XP number rises by 4\n"
+        "- buy: one shop card empties and gold drops by that champion's cost; give the champion\n"
+        "- sell: a unit is dragged off the board or bench and gold rises; give the unit and its star level\n"
+        "- buy_wisp: the Wisp in the rightmost shop slot is bought\n"
+        "If gold drops by more than one action's cost between two frames, write one entry per action and use the "
+        "size of the drop to count them (for example 6 gold and three new shops = three rerolls).\n"
+        "rounds: for every listed round, gold at the start and right before combat; HP; level, xp and xp_max at "
+        "the start; level and xp at the end; shop_followed: true if the shop and the gold stayed visible for the "
+        "whole planning phase (so your action list for it is complete, even if it is empty), false if a menu, the "
+        "augment screen or the camera hid them for part of it; xp_buys and rerolls: the counts of those actions; "
+        "units_bought and units_sold, matching the actions; what the rightmost shop slot held at the start "
+        f"('wisp' or 'champion'), the Wisp's name and whether it was bought; the augment picked if any. {HIDDEN}\n"
         "Use only names from the lists.\n"
         f"Champions: {', '.join(n['champions'])}\n"
         f"Augments: {', '.join(n['augments'])}\n"

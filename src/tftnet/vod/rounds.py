@@ -97,13 +97,15 @@ def derive(rounds: pd.DataFrame) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------- gold accounting (event-sampling pipeline)
-# Shop prices are long-standing TFT rules. The XP table and selling rule are UNVERIFIED for Set 18: the
-# pipeline prefers the 'xp/max' numbers read off the HUD and only falls back to XP_TO_NEXT.
+# Shop prices are long-standing TFT rules. The pipeline prefers the 'xp/max' numbers read off the HUD
+# (and the table those readings imply, see observed_xp_table) and only falls back to XP_TO_NEXT.
 XP_BUY_GOLD = 4
 XP_PER_BUY = 4
 REROLL_GOLD = 2
 GOLD_TOLERANCE = 2
-XP_TO_NEXT = {1: 2, 2: 2, 3: 6, 4: 10, 5: 20, 6: 36, 7: 48, 8: 76, 9: 84}  # UNVERIFIED for Set 18
+# 7->8, 8->9, 9->10 are from Riot's patch 18.2 notes (7->8 cut 60 -> 56; 8->9 and 9->10 cut to 64 and put back
+# to 68 by the Sept 14, 2026 mid-patch). Levels 1-6 are pre-Set-18 values, UNVERIFIED for Set 18.
+XP_TO_NEXT = {1: 2, 2: 2, 3: 6, 4: 10, 5: 20, 6: 36, 7: 56, 8: 68, 9: 68}
 
 
 def sell_value(cost: int, stars: int | None) -> int:
@@ -113,8 +115,9 @@ def sell_value(cost: int, stars: int | None) -> int:
     return v - 1 if stars >= 2 and cost >= 2 else v
 
 
-def xp_gained(level0, xp0, level1, xp1, xp_max0=None) -> float:
-    """XP gained between two HUD readings. NaN if a reading is missing."""
+def xp_gained(level0, xp0, level1, xp1, xp_max0=None, table: dict | None = None) -> float:
+    """XP gained between two HUD readings. NaN if a reading is missing. `table` (level -> XP to next, e.g.
+    from observed_xp_table) overrides XP_TO_NEXT level by level."""
     vals = [level0, xp0, level1, xp1]
     if any(v is None or pd.isna(v) for v in vals):
         return np.nan
@@ -123,11 +126,24 @@ def xp_gained(level0, xp0, level1, xp1, xp_max0=None) -> float:
         return float(xp1 - xp0)
     if level1 < level0:
         return np.nan
-    first = int(xp_max0) if xp_max0 is not None and pd.notna(xp_max0) else XP_TO_NEXT.get(level0, np.nan)
+    tab = {**XP_TO_NEXT, **(table or {})}
+    first = int(xp_max0) if xp_max0 is not None and pd.notna(xp_max0) else tab.get(level0, np.nan)
     gain = first - xp0 + xp1
     for lv in range(level0 + 1, level1):
-        gain += XP_TO_NEXT.get(lv, np.nan)
+        gain += tab.get(lv, np.nan)
     return float(gain)
+
+
+def observed_xp_table(levels, xp_maxes, min_reads: int = 2) -> dict[int, int]:
+    """Level -> XP to next level, from HUD 'xp/max' readings: the most common max per level, kept only when
+    at least `min_reads` readings agree on it."""
+    out = {}
+    df = pd.DataFrame({"level": levels, "xp_max": xp_maxes}).dropna()
+    for lv, g in df.groupby("level"):
+        top = g["xp_max"].value_counts()
+        if top.iloc[0] >= min_reads:
+            out[int(lv)] = int(top.index[0])
+    return out
 
 
 def gold_accounting(gold_start, gold_end, xp_buys=None, unit_cost=None, wisp_cost=0, sold_value=0,

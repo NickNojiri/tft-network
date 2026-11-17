@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Annotated, Optional
 
-from pydantic import BaseModel, Field, WithJsonSchema
+from pydantic import BaseModel, ConfigDict, Field, WithJsonSchema
 
 
 class RoundRow(BaseModel):
@@ -62,6 +62,18 @@ XP = _bounded(0, 200)
 Count = _bounded(0, 99)
 Stars = _bounded(1, 4)
 Place = _bounded(1, 8)
+SHOP_ACTIONS = ["reroll", "buy_xp", "buy", "sell", "buy_wisp"]
+Action = Annotated[str, WithJsonSchema({"type": "string", "enum": SHOP_ACTIONS})]
+
+
+def _all_required(schema: dict, cls) -> None:
+    schema["required"] = list(schema.get("properties", {}))
+
+
+class Answer(BaseModel):
+    """Every field is required in the schema Gemini gets (nullable ones may be null), but parsing keeps the
+    defaults. With optional fields Gemini left out every shop field in the 2026-11-16 zoom answer."""
+    model_config = ConfigDict(json_schema_extra=_all_required)
 
 
 # ---------------------------------------------------------------- event-sampling pipeline (vod/events.py)
@@ -104,7 +116,7 @@ class Snapshots(BaseModel):
     rounds: list[SnapRound]
 
 
-class SnapRoundFlat(BaseModel):
+class SnapRoundFlat(Answer):
     """Pass B, flat form (same shape as the zooms, which read well): Gemini takes the majority of the frames."""
     stage: str
     gold_start: Optional[Gold] = None
@@ -122,18 +134,33 @@ class SnapRoundFlat(BaseModel):
     augment: Optional[str] = None
 
 
-class SnapshotsFlat(BaseModel):
+class SnapshotsFlat(Answer):
     rounds: list[SnapRoundFlat]
+    final_placement: Optional[Place] = Field(None, description="From the end-of-game part: the streamer's final "
+                                                               "placement 1-8 (1 if they won), null if not shown")
 
 
-class SoldUnit(BaseModel):
+class SoldUnit(Answer):
     name: str
     stars: Optional[Stars] = 1
 
 
-class ZoomRound(BaseModel):
-    """Pass C: every frame of one planning phase at high resolution, for the gold accounting."""
+class ShopAction(Answer):
+    """One shop action in a zoomed planning phase. A flat list beside the rounds, not nested in them: nested
+    per-frame lists came back near-empty in pass B."""
     stage: str
+    t: Optional[str] = Field(None, description="Video time, MM:SS")
+    action: Action = Field(description="reroll, buy_xp, buy (a champion), sell (a unit), buy_wisp")
+    unit: Optional[str] = Field(None, description="Champion bought or unit sold; null otherwise")
+    stars: Optional[Stars] = Field(None, description="Star level of a sold unit; null otherwise")
+    gold_after: Optional[Gold] = Field(None, description="Gold shown right after the action")
+
+
+class ZoomRound(Answer):
+    """Pass C: the whole planning phase at high resolution, for the gold accounting."""
+    stage: str
+    shop_followed: Optional[bool] = Field(None, description="true if the shop and gold stayed visible for the "
+                                                            "whole planning phase, so the action list is complete")
     gold_start: Optional[Gold] = None
     gold_end: Optional[Gold] = None
     hp: Optional[HP] = None
@@ -152,5 +179,7 @@ class ZoomRound(BaseModel):
     augment: Optional[str] = None
 
 
-class Zooms(BaseModel):
+class Zooms(Answer):
     rounds: list[ZoomRound]
+    actions: list[ShopAction] = Field(default_factory=list, json_schema_extra={"maxItems": 400},
+                                      description="Every shop action in every listed round, in time order")

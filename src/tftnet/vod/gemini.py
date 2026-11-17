@@ -142,7 +142,9 @@ class GeminiVideo:
     def __init__(self, api_key: str, model: str, resolution: str = "high", budget: Budget | None = None,
                  usage_log: UsageLog | None = None, api: str = "interactions",
                  sleep: Callable[[float], None] = time.sleep, max_attempts: int = 5, backoff_s: float = 8.0,
-                 caps_path: Path | None = None, max_output_tokens: int = 24576):
+                 caps_path: Path | None = None, max_output_tokens: int = 40960):
+        # The cap includes thinking (13K in the 2026-11-16 zoom answer). Bounded ints and the action list's
+        # maxItems keep answers from running away, so it only needs to stop a runaway, not fit a tight answer.
         if not api_key:
             raise RuntimeError("GEMINI_API_KEY is empty. Get a free key in Google AI Studio and add it to .env.")
         from google import genai  # imported lazily so the rest of the repo works without it

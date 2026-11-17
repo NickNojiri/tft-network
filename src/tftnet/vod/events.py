@@ -2,9 +2,11 @@
 
 Per game, three requests when everything fits (more only if one would pass the token cap):
   A  segmentation  whole game, low resolution, 1 frame / 5 s, as labelled parts   -> round boundaries
-  B  snapshots     ONE request: a few frames at each planning start and before each combat, medium res
-  C  zooms         ONE request: whole planning phases at high res, 1 fps, for the rounds that need it:
-                   unreadable numbers, failed checks, gold drop >= 10, a Wisp offered, an expected Wisp unseen
+  B  snapshots     ONE request: a few frames at each planning start and before each combat, high res, plus
+                   the end of the game for the final placement
+  C  zooms         ONE request: whole planning phases at high res, up to 2 fps, for the rounds that need it:
+                   unreadable numbers, failed checks, gold drop >= 10, a Wisp offered, an expected Wisp unseen.
+                   Gemini lists every shop action (reroll, XP, buy, sell, Wisp).
 Gold accounting then splits each zoomed round's spending into XP buys, units, the Wisp and rerolls.
 
 Values are never imputed: a number no frame shows stays empty with confidence 'missing'. Every response is
@@ -25,8 +27,8 @@ import pandas as pd
 from ..config import Settings
 from . import prompts
 from .gemini import PartsLimitError, VideoPart, estimate_tokens
-from .rounds import (XP_PER_BUY, consensus, gold_accounting, has_shop, parse_stage, round_type, sell_value,
-                     stage_index, ts_seconds, validate, wisp_schedule, xp_gained)
+from .rounds import (XP_PER_BUY, consensus, gold_accounting, has_shop, observed_xp_table, parse_stage, round_type,
+                     sell_value, stage_index, ts_seconds, validate, wisp_schedule, xp_gained)
 from .schema import Segmentation, SnapshotsFlat, Zooms
 
 log = logging.getLogger(__name__)
@@ -44,10 +46,14 @@ class EventConfig:
     snap_frames: int = 3
     snap_res: str = "high"     # medium (44 tokens/frame) misread HP in the first live run; high is 253
     snap_requests: int = 1
-    zoom_fps: float = 1.0
+    zoom_fps: float = 2.0     # lowered to fit token_cap; 1 fps read gold well but no shop actions (2026-11-16)
     zoom_res: str = "high"
     zoom_requests: int = 1
     zoom_drop: int = 10
+    zoom_pad_s: float = 4.0   # A's times come from 1 frame / 5 s, so pad each planning window
+    end_part: bool = True     # B also gets the end of the game, at end_fps, for the final placement
+    end_window_s: float = 30.0
+    end_fps: float = 1.0
     max_parts: int = 10       # video parts per request (A, C). Gemini documents up to 10 videos per request.
     # B: two windows per round needs ~70 parts. The API accepted 63 (2026-11-16) but the answer degenerated
     # (repeated digits, 10 of 33 rounds). Refused, or under half the rounds answered -> back to 10.
@@ -233,10 +239,11 @@ def _planning_end(r) -> float:
     return r["combat_s"] if pd.notna(r["combat_s"]) else r["planning_s"] + PLANNING_S
 
 
-def snapshot_parts(seg: pd.DataFrame, url: str, cfg: EventConfig) -> list[VideoPart]:
+def snapshot_parts(seg: pd.DataFrame, url: str, cfg: EventConfig, reserve: int = 0) -> list[VideoPart]:
     """Two short windows per round (planning start, just before combat). If they don't fit
-    max_parts x snap_requests, each round becomes one window, then consecutive rounds share a part."""
-    cap = cfg.snap_max_parts * cfg.snap_requests
+    max_parts x snap_requests (less `reserve` parts kept for other windows), each round becomes one window,
+    then consecutive rounds share a part."""
+    cap = max(1, cfg.snap_max_parts * cfg.snap_requests - reserve)
     lead = (cfg.snap_frames - 1) / cfg.snap_fps
     two = []
     for _, r in seg.iterrows():
@@ -264,6 +271,22 @@ def snapshot_parts(seg: pd.DataFrame, url: str, cfg: EventConfig) -> list[VideoP
         desc = "; ".join(f"round {st}: planning {fmt_ts(p)}, combat {fmt_ts(c)}" for st, p, c, _ in grp)
         out.append(VideoPart(url, grp[0][1] + 1, grp[-1][2] - 1, min(x[3] for x in grp), desc))
     return [_numbered(p, i) for i, p in enumerate(out)]
+
+
+def end_part(seg: pd.DataFrame, game_end_s: float, end_s: float, url: str, cfg: EventConfig) -> VideoPart | None:
+    """The end of the game at high resolution, for the final placement: pass A's low-resolution frames
+    never read it. Around A's game end if it has one, else the last 2 x end_window_s of the game."""
+    if not cfg.end_part or seg.empty or end_s is None or pd.isna(end_s):
+        return None
+    last = seg.iloc[-1]
+    after = last["combat_s"] if pd.notna(last["combat_s"]) else last["planning_s"]
+    if game_end_s is not None and pd.notna(game_end_s) and after < game_end_s <= end_s + cfg.end_window_s:
+        a, b = max(after, game_end_s - cfg.end_window_s), min(end_s, game_end_s + cfg.end_window_s)
+    else:
+        a, b = max(after, end_s - 2 * cfg.end_window_s), end_s
+    if b - a < 5:
+        return None
+    return VideoPart(url, a, b, cfg.end_fps, f"End of the game (after round {last['stage']})")
 
 
 def _numbered(p: VideoPart, i: int) -> VideoPart:
@@ -364,29 +387,78 @@ def zoom_triggers(t: pd.DataFrame, cfg: EventConfig) -> pd.DataFrame:
     return pd.DataFrame(out, columns=["stage", "priority", "reasons", "order"])
 
 
-def zoom_parts(t: pd.DataFrame, trig: pd.DataFrame, url: str, cfg: EventConfig) -> tuple[list[VideoPart], list[str]]:
+ZOOM_TEXT_TOKENS = 8000  # prompt and name lists, kept free under token_cap
+
+
+def zoom_parts(t: pd.DataFrame, trig: pd.DataFrame, url: str, cfg: EventConfig
+               ) -> tuple[list[VideoPart], list[str], float]:
+    """One padded window per chosen round, at the highest fps up to zoom_fps (steps of 0.25, at least 0.5)
+    that keeps the request under token_cap."""
     cap = cfg.max_parts * cfg.zoom_requests
     chosen = trig.sort_values(["priority", "order"]).head(cap).sort_values("order")
-    parts = []
     idx = t.set_index("stage")
+    wins = []
     for st in chosen["stage"]:
         r = idx.loc[st]
         p, c = r["planning_s"], _planning_end(r)
-        parts.append(VideoPart(url, max(0.0, p - 1), c + 1, cfg.zoom_fps,
-                               f"Round {st}: planning {fmt_ts(p)} to combat {fmt_ts(c)}"))
-    return [_numbered(p, i) for i, p in enumerate(parts)], list(chosen["stage"])
+        wins.append((st, p, c, max(0.0, p - cfg.zoom_pad_s), c + cfg.zoom_pad_s))
+
+    def build(fps):
+        return [_numbered(VideoPart(url, a, b, fps, f"Round {st}: planning {fmt_ts(p)} to combat {fmt_ts(c)}"), i)
+                for i, (st, p, c, a, b) in enumerate(wins)]
+
+    fps = cfg.zoom_fps
+    limit = (cfg.token_cap - ZOOM_TEXT_TOKENS) * cfg.zoom_requests
+    while fps > 0.5 and estimate_tokens(build(fps), cfg.zoom_res, cfg.audio) > limit:
+        fps -= 0.25
+    return build(fps), list(chosen["stage"]), fps
+
+
+def _stage_key(x) -> str | None:
+    p = parse_stage(x)
+    return f"{p[0]}-{p[1]}" if p else None
+
+
+def zoom_shop(z: dict | None, acts: list[dict]) -> dict | None:
+    """What a zoom saw of the shop in one round: rerolls, XP buys, units bought and sold, Wisp bought.
+    From the action log when it has entries for the round; otherwise from the round's own fields, which count
+    only if Gemini says it followed the shop all phase (then no action means none happened: an observed zero,
+    not an imputed one) or it filled them in. None: the zoom didn't follow the shop."""
+    if not z:
+        return None
+    if acts:
+        kinds = [str(a.get("action") or "").strip().lower() for a in acts]
+        return {"rerolls": kinds.count("reroll"), "xp_buys": kinds.count("buy_xp"),
+                "bought": [a.get("unit") for a, k in zip(acts, kinds) if k == "buy"],
+                "sold": [{"name": a.get("unit"), "stars": a.get("stars")} for a, k in zip(acts, kinds) if k == "sell"],
+                "wisp_bought": True if "buy_wisp" in kinds else None, "from": "log"}
+    filled = z.get("rerolls") is not None or bool(z.get("units_bought")) or bool(z.get("units_sold"))
+    if z.get("shop_followed") is True or filled:
+        followed = z.get("shop_followed") is True
+        return {"rerolls": z.get("rerolls") if z.get("rerolls") is not None else (0 if followed else None),
+                "xp_buys": z.get("xp_buys") if z.get("xp_buys") is not None else (0 if followed else None),
+                "bought": list(z.get("units_bought") or []), "sold": list(z.get("units_sold") or []),
+                "wisp_bought": None, "from": "round"}
+    return None
 
 
 def apply_zooms(t: pd.DataFrame, zooms: list[dict], wisp_cost: dict[str, float],
-                unit_cost: dict[str, int]) -> pd.DataFrame:
+                unit_cost: dict[str, int], actions: list[dict] | None = None,
+                xp_table: dict[int, int] | None = None) -> pd.DataFrame:
     from ..static import norm
 
     t = t.copy()
     by = {}
     for z in zooms:
-        p = parse_stage(z.get("stage"))
-        if p:
-            by.setdefault(f"{p[0]}-{p[1]}", z)
+        k = _stage_key(z.get("stage"))
+        if k:
+            by.setdefault(k, z)
+    acts_by: dict[str, list[dict]] = {}
+    for a in actions or []:
+        k = _stage_key(a.get("stage"))
+        if k:
+            acts_by.setdefault(k, []).append(a)
+    t["shop_from"] = ""
     for col in ["xp_buys", "unit_cost", "wisp_cost", "sold_value", "rerolls", "rerolls_read", "spend",
                 "gold_zoom", "hp_zoom", "level_zoom", "gold_end_zoom"]:
         t[col] = np.nan
@@ -422,11 +494,16 @@ def apply_zooms(t: pd.DataFrame, zooms: list[dict], wisp_cost: dict[str, float],
             if z.get("augment") and not r.get("augment_picked"):
                 t.at[i, "augment_picked"] = z["augment"]
             t.at[i, "source"] = "C"
+        shop = zoom_shop(z, acts_by.get(r["stage"], [])) if z else None
+        if shop and shop["wisp_bought"] and _tri(t.at[i, "wisp_bought"]) is not True:
+            t.at[i, "wisp_bought"] = True
+            if t.at[i, "wisp_status"] != "no_shop":
+                t.at[i, "wisp_status"] = "offered"
         r = t.loc[i]
         flags = []
-        gain = xp_gained(r["level"], r["xp"], r["level_end"], r["xp_end"], r["xp_max"])
+        gain = xp_gained(r["level"], r["xp"], r["level_end"], r["xp_end"], r["xp_max"], xp_table)
         xp_buys = gain / XP_PER_BUY if pd.notna(gain) else np.nan
-        read_buys = z.get("xp_buys") if z else None
+        read_buys = shop["xp_buys"] if shop else (z.get("xp_buys") if z else None)
         if pd.notna(xp_buys) and (xp_buys < 0 or xp_buys != int(xp_buys)):
             flags.append("xp_odd")
             xp_buys = float(read_buys) if read_buys is not None else np.nan
@@ -435,29 +512,35 @@ def apply_zooms(t: pd.DataFrame, zooms: list[dict], wisp_cost: dict[str, float],
         elif read_buys is not None and pd.notna(xp_buys) and read_buys != xp_buys:
             flags.append("xp_buy_mismatch")
         units = sold = wcost = np.nan
-        # Empty lists with no reroll count mean the zoom didn't follow the shop, not that nothing was bought.
-        shop_read = bool(z) and (z.get("rerolls") is not None or bool(z.get("units_bought")) or bool(z.get("units_sold")))
-        if shop_read:
-            costs = [unit_cost.get(norm(u)) for u in z.get("units_bought") or []]
+        if shop:
+            t.at[i, "shop_from"] = shop["from"]
+            if shop["from"] == "log" and z.get("rerolls") is not None and z["rerolls"] != shop["rerolls"]:
+                flags.append("zoom_count_mismatch")
+            costs = [unit_cost.get(norm(u)) if u else None for u in shop["bought"]]
             units = float(sum(costs)) if all(c is not None for c in costs) else np.nan
             if pd.isna(units):
                 flags.append("unknown_unit")
-            sv = [(unit_cost.get(norm(u.get("name"))), u.get("stars")) for u in z.get("units_sold") or []]
+            sv = [(unit_cost.get(norm(u.get("name"))) if u.get("name") else None, u.get("stars"))
+                  for u in shop["sold"]]
             sold = float(sum(sell_value(c, s) for c, s in sv)) if all(c is not None for c, _ in sv) else np.nan
+            if pd.isna(sold):  # an unknown sale leaves the accounting partial rather than counting it as 0
+                units = np.nan
+                flags.append("unknown_unit")
             if _tri(r["wisp_bought"]) is True:
                 wcost = wisp_cost.get(norm(r["wisp_name"]), np.nan) if r["wisp_name"] else np.nan
             elif r["wisp_status"] == "offered" and _tri(r["wisp_bought"]) is None:
                 wcost = np.nan
             else:
                 wcost = 0.0
-        if z and not shop_read:
+        if z and not shop:
             flags.append("zoom_no_shop_read")
+        read_rerolls = shop["rerolls"] if shop else None
         acct = gold_accounting(r["gold"], r["gold_end"], xp_buys, units, wcost, 0 if pd.isna(sold) else sold,
-                               z.get("rerolls") if z else None)
+                               read_rerolls)
         t.at[i, "xp_buys"], t.at[i, "unit_cost"], t.at[i, "wisp_cost"] = xp_buys, units, wcost
         t.at[i, "sold_value"], t.at[i, "spend"], t.at[i, "rerolls"] = sold, acct["spend"], acct["rerolls"]
-        t.at[i, "rerolls_read"] = z.get("rerolls") if z and z.get("rerolls") is not None else np.nan
-        t.at[i, "acct_flags"] = ";".join([f for f in [acct["acct_flags"]] + flags if f])
+        t.at[i, "rerolls_read"] = read_rerolls if read_rerolls is not None else np.nan
+        t.at[i, "acct_flags"] = ";".join(dict.fromkeys(f for f in [acct["acct_flags"]] + flags if f))
     return t
 
 
@@ -491,17 +574,22 @@ def extract_game(s: Settings, gem, g, cfg: EventConfig) -> tuple[pd.DataFrame, d
         log.warning("%s: segmentation found no rounds", g.game_id)
         return pd.DataFrame(), {**summary, "passes": call.stats}
 
-    # B
-    prompt = prompts.snapshot_prompt(name, wisp_names)
+    # B (plus the end of the game, for the final placement)
+    end = end_part(seg, meta["game_end_s"], float(g.end_s), url, cfg)
+    prompt = prompts.snapshot_prompt(name, wisp_names, end_part=end is not None)
     while True:
-        parts = snapshot_parts(seg, url, cfg)
+        parts = snapshot_parts(seg, url, cfg, reserve=1 if end else 0)
+        if end:
+            parts = parts + [_numbered(end, len(parts))]
         bs = batches(parts, cfg.snap_res, cfg.audio, cfg.token_cap, cfg.snap_max_parts)
         if len(bs) > cfg.snap_requests:
             log.warning("%s: snapshots need %d requests (token cap), not %d", g.game_id, len(bs), cfg.snap_requests)
         try:
-            snaps = []
+            snaps, placement_b = [], None
             for k, b in enumerate(bs):
-                snaps += (call("B", k, b, prompt, SnapshotsFlat, cfg.snap_res).get("parsed") or {}).get("rounds", [])
+                parsed = call("B", k, b, prompt, SnapshotsFlat, cfg.snap_res).get("parsed") or {}
+                snaps += parsed.get("rounds", [])
+                placement_b = placement_b or parsed.get("final_placement")
         except PartsLimitError as e:
             if cfg.snap_max_parts <= 10:
                 raise
@@ -526,25 +614,33 @@ def extract_game(s: Settings, gem, g, cfg: EventConfig) -> tuple[pd.DataFrame, d
     trig = zoom_triggers(t, cfg)
     t["zoomed"] = False
     t["zoom_reason"] = ""
-    zooms = []
-    chosen = []
+    zooms, actions, chosen, zoom_fps = [], [], [], None
     if len(trig):
-        parts, chosen = zoom_parts(t, trig, url, cfg)
-        prompt = prompts.zoom_prompt(name, wisp_names)
+        parts, chosen, zoom_fps = zoom_parts(t, trig, url, cfg)
+        prompt = prompts.zoom_prompt(name, wisp_names, zoom_fps)
         for k, b in enumerate(batches(parts, cfg.zoom_res, cfg.audio, cfg.token_cap, cfg.max_parts)):
-            zooms += (call("C", k, b, prompt, Zooms, cfg.zoom_res).get("parsed") or {}).get("rounds", [])
+            parsed = call("C", k, b, prompt, Zooms, cfg.zoom_res).get("parsed") or {}
+            zooms += parsed.get("rounds", [])
+            actions += parsed.get("actions", [])
         reason = dict(zip(trig["stage"], trig["reasons"]))
         t["zoom_reason"] = t["stage"].map(lambda st: reason.get(st, ""))
         t.loc[t["stage"].isin(chosen), "zoomed"] = True
         t.loc[(t["zoom_reason"] != "") & ~t["zoomed"], "zoom_reason"] = "skipped:" + t["zoom_reason"]
-    t = finalize(apply_zooms(t, zooms, wisp_cost, _unit_costs()))
+    xp_table = observed_xp_table(t["level"], t["xp_max"])
+    t = finalize(apply_zooms(t, zooms, wisp_cost, _unit_costs(), actions, xp_table))
     t.insert(0, "game_id", g.game_id)
-    t["final_placement_gemini"] = meta["final_placement"]
+    placement = placement_b or meta["final_placement"]
+    t["final_placement_gemini"] = placement
 
     exp = expected_stages(t["stage"].iloc[-1])
     summary.update({
         "rounds_expected": len(exp), "rounds_missing": sorted(set(exp) - set(t["stage"]), key=stage_index),
+        "final_placement": placement,
+        "final_placement_from": "B end part" if placement_b else ("A" if placement else None),
+        "xp_table_observed": xp_table,
         "zoom_triggers": len(trig), "zoomed": len(chosen), "zoom_skipped": int(len(trig) - len(chosen)),
+        "zoom_fps": zoom_fps, "zoom_actions": len(actions),
+        "shop_read": t["shop_from"][t["shop_from"] != ""].value_counts().to_dict(),
         "confidence": t["confidence"].value_counts().to_dict(),
         "gold_conf": t["gold_conf"].value_counts().to_dict(),
         "acct_flags": t["acct_flags"][t["acct_flags"] != ""].str.split(";").explode().value_counts().to_dict(),

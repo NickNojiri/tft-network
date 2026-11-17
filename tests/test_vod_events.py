@@ -239,7 +239,7 @@ def test_frames_only_interactions_call_uses_v1beta(tmp_path):
     gem.client = SimpleNamespace(interactions=SimpleNamespace(create=lambda **kw: cap.update(kw) or Resp()))
     gem._ia_parts([VideoPart("u", 0, 60, 0.2)], "p", Segmentation, "low", True)
     assert cap["api_version"] == "v1beta" and cap["input"][0]["processing"]["content_layers"] == ["frames"]
-    assert cap["generation_config"]["max_output_tokens"] == 24576
+    assert cap["generation_config"]["max_output_tokens"] == 40960
     cap.clear()
     gem._ia_parts([VideoPart("u", 0, 60, 0.2)], "p", Segmentation, "low", False)
     assert "api_version" not in cap and "content_layers" not in cap["input"][0]["processing"]
@@ -358,7 +358,8 @@ class StubGem:
                 flat("2-1", 10, 10, True, wisp_slot="champion"),
                 flat("2-2", 42, 20, True, xp_end=8, wisp_slot="wisp", wisp_name="All Ones"),
                 flat("2-3", None, 21, None),
-                flat("2-5", 26, 26, False, wisp_slot="champion")]}
+                flat("2-5", 26, 26, False, wisp_slot="champion")],
+                "final_placement": 2 if "End of the game" in parts[-1].label else None}
         else:
             stages = [p.label.split("Round ")[1].split(":")[0] for p in parts]
             rounds = []
@@ -395,6 +396,10 @@ def test_extract_game_three_requests_and_accounting(settings, monkeypatch):
     assert r.loc["2-1", "wisp_expected"] == False and r.loc["2-2", "wisp_expected"] == True  # noqa: E712
     assert summ["requests_sent"] == 3 and summ["rounds_missing"] == ["1-1", "1-2", "1-3", "1-4", "2-4"]
     assert summ["passes"]["B"]["prompt_tokens"] == 5000
+    # the end-of-game part in B wins over A's low-resolution read (3)
+    assert summ["final_placement"] == 2 and summ["final_placement_from"] == "B end part"
+    assert (t["final_placement_gemini"] == 2).all()
+    assert summ["xp_table_observed"] == {5: 20}  # every snapshot read 'x/20' at level 5
     # second run: everything from cache
     gem2 = StubGem()
     t2, summ2 = ev.extract_game(settings, gem2, g, ev.EventConfig())
@@ -447,7 +452,7 @@ def test_snapshot_parts_refused_replans(settings, monkeypatch):
     _, summ = ev.extract_game(settings, gem, g, ev.EventConfig(snap_max_parts=70))
     names = [c[0] for c in gem.calls]
     assert names[:3] == ["Segmentation", "refused", "Snapshots"]  # 16 windows refused, then one per round
-    assert gem.calls[1][1] == 16 and gem.calls[2][1] == 8
+    assert gem.calls[1][1] == 17 and gem.calls[2][1] == 9  # each plus the end-of-game part
     assert summ["passes"]["B"]["parts_refused"] == 70
     with pytest.raises(PartsLimitError):  # refusing even 10 parts is not retried
         ev.extract_game(settings, LimitedGem(), SimpleNamespace(game_id="g4", video_url="u", start_s=60,
@@ -477,7 +482,7 @@ def test_degenerate_snapshot_answer_replans_with_ten(settings, monkeypatch):
 
     g = SimpleNamespace(game_id="g5", video_url="u", start_s=60, end_s=800, streamer_name="S")
     t, summ = ev.extract_game(settings, Degenerate(), g, ev.EventConfig(snap_max_parts=70))
-    assert [c for c in calls if c[0] == "SnapshotsFlat"] == [("SnapshotsFlat", 16), ("SnapshotsFlat", 8)]
+    assert [c for c in calls if c[0] == "SnapshotsFlat"] == [("SnapshotsFlat", 17), ("SnapshotsFlat", 9)]
     assert summ["passes"]["B"]["degenerate_parts"] == 70 and summ["passes"]["B"]["coverage"] == 1.0
     assert t["gold"].notna().all()
 
@@ -501,3 +506,94 @@ def test_zoom_fills_gaps_but_does_not_override_exact_snapshot():
     assert np.isnan(r.loc["5-5", "rerolls"]) and "zoom_no_shop_read" in r.loc["5-5", "acct_flags"]
     assert (r.loc["5-6", "gold"], r.loc["5-6", "gold_conf"]) == (29, "exact")
     assert r.loc["5-6", "rerolls"] == 14 and r.loc["5-6", "acct_flags"] == ""  # (29 - 0 - 1) / 2
+
+# ---------------------------------------------------------------- shop action log, end of game, XP table
+def test_answer_schemas_require_every_field_but_parse_leniently():
+    from tftnet.vod.schema import ShopAction, SnapRoundFlat, ZoomRound
+
+    for m in (SnapshotsFlat, SnapRoundFlat, Zooms, ZoomRound, ShopAction):
+        s = m.model_json_schema()
+        assert sorted(s["required"]) == sorted(s["properties"]), m.__name__
+    z = Zooms.model_json_schema()
+    assert z["properties"]["actions"]["maxItems"] == 400
+    assert z["$defs"]["ShopAction"]["properties"]["action"]["enum"] == ["reroll", "buy_xp", "buy", "sell", "buy_wisp"]
+    assert ZoomRound.model_validate({"stage": "2-1"}).shop_followed is None
+    assert ShopAction.model_validate({"stage": "2-1", "action": "peek"}).action == "peek"  # ignored later
+
+
+def _t41():
+    seg = pd.DataFrame({"stage": ["4-1", "4-2", "4-3"], "planning_s": [100.0, 180.0, 260.0],
+                        "combat_s": [130.0, 210.0, 290.0]})
+
+    def flat(st, g0, g1, xp0=2, xp1=2):
+        return {"stage": st, "gold_start": g0, "hp": 30, "level_start": 7, "xp_start": xp0, "xp_max_start": 56,
+                "gold_end": g1, "level_end": 7, "xp_end": xp1, "frames_agree": True, "wisp_slot": "champion"}
+
+    t = ev.summarize_snapshots(seg, [flat("4-1", 70, 34, 2, 6), flat("4-2", 40, 40), flat("4-3", 50, 30)])
+    t["zoomed"] = True
+    return t
+
+
+def test_zoom_action_log_drives_accounting():
+    zooms = [{"stage": "4-1", "shop_followed": True, "rerolls": 12},
+             {"stage": "4-2", "shop_followed": True},
+             {"stage": "4-3", "shop_followed": False}]
+    acts = ([{"stage": "4-1", "action": "reroll"}] * 14 + [{"stage": "4-1", "action": "buy_xp"},
+            {"stage": "4-1", "action": "buy", "unit": "Karma"}, {"stage": "4-1", "action": "buy", "unit": "Ahri"}])
+    r = ev.apply_zooms(_t41(), zooms, {}, {"karma": 1, "ahri": 3}, acts).set_index("stage")
+    # 4-1: 70 -> 34 = 36 spent = 1 XP buy (4, and XP 2 -> 6) + Karma 1 + Ahri 3 + 14 rerolls (28)
+    assert r.loc["4-1", "shop_from"] == "log" and r.loc["4-1", "rerolls"] == 14 and r.loc["4-1", "rerolls_read"] == 14
+    assert r.loc["4-1", "xp_buys"] == 1 and r.loc["4-1", "unit_cost"] == 4
+    assert r.loc["4-1", "acct_flags"] == "zoom_count_mismatch"  # the round said 12, the log lists 14
+    # 4-2: followed the whole phase, nothing happened: an observed zero
+    assert r.loc["4-2", "shop_from"] == "round" and r.loc["4-2", "rerolls"] == 0 and r.loc["4-2", "acct_flags"] == ""
+    # 4-3: shop hidden and no actions: nothing computed
+    assert np.isnan(r.loc["4-3", "rerolls"]) and "zoom_no_shop_read" in r.loc["4-3", "acct_flags"]
+
+
+def test_zoom_log_sells_and_unknown_units():
+    zooms = [{"stage": "4-1", "shop_followed": True}, {"stage": "4-3", "shop_followed": True}]
+    acts = [{"stage": "4-1", "action": "sell", "unit": "Ahri", "stars": 2}] + [{"stage": "4-1", "action": "reroll"}] * 18 + \
+           [{"stage": "4-1", "action": "buy_xp"}] + [{"stage": "4-3", "action": "sell", "unit": "Nobody"}]
+    r = ev.apply_zooms(_t41(), zooms, {}, {"ahri": 3}, acts).set_index("stage")
+    # 4-1: 36 spent + 8 back for a 2-star Ahri = 44 = 4 (XP) + 40 (20 rerolls); the log saw 18: 4 gold off
+    assert r.loc["4-1", "sold_value"] == 8 and r.loc["4-1", "rerolls"] == 20
+    assert "gold_mismatch" in r.loc["4-1", "acct_flags"]
+    # an unknown sale leaves the accounting partial instead of counting it as 0
+    assert np.isnan(r.loc["4-3", "rerolls"]) and "unknown_unit" in r.loc["4-3", "acct_flags"]
+
+
+def test_zoom_parts_pad_windows_and_fit_token_cap():
+    seg = pd.DataFrame({"stage": [f"{3 + i // 6}-{1 + i % 6}" for i in range(10)],
+                        "planning_s": [100.0 + 100 * i for i in range(10)],
+                        "combat_s": [160.0 + 100 * i for i in range(10)]})
+    t = ev.summarize_snapshots(seg, [])
+    trig = pd.DataFrame({"stage": t["stage"], "priority": 0, "reasons": "unreadable", "order": range(10)})
+    cfg = ev.EventConfig()
+    parts, chosen, fps = ev.zoom_parts(t, trig, "u", cfg)
+    assert len(parts) == 10 and parts[0].start_s == 96 and parts[0].end_s == 164  # padded 4 s each side
+    assert 0.5 <= fps < cfg.zoom_fps and (fps * 4).is_integer()
+    assert ev.estimate_tokens(parts, "high", False) <= cfg.token_cap - ev.ZOOM_TEXT_TOKENS
+    few, _, fps_few = ev.zoom_parts(t, trig.head(3), "u", cfg)
+    assert fps_few == cfg.zoom_fps and len(few) == 3
+
+
+def test_end_part_window_and_reserved_slot():
+    seg = pd.DataFrame({"stage": ["6-1", "6-2"], "planning_s": [1665.0, 1725.0], "combat_s": [1690.0, 1755.0]})
+    cfg = ev.EventConfig()
+    p = ev.end_part(seg, 1785.0, 1793.0, "u", cfg)  # A's game end 29:45, video ends 29:53
+    assert (p.start_s, p.end_s, p.fps) == (1755.0, 1793.0, 1.0) and "End of the game" in p.label
+    assert (ev.end_part(seg, np.nan, 1900.0, "u", cfg).start_s, ev.end_part(seg, np.nan, 1900.0, "u", cfg).end_s) == (1840.0, 1900.0)
+    assert ev.end_part(seg, np.nan, 1757.0, "u", cfg) is None  # under 5 s left
+    assert ev.end_part(seg, 1785.0, 1793.0, "u", ev.EventConfig(end_part=False)) is None
+    assert len(ev.snapshot_parts(_seg(30), "u", cfg)) == 10
+    assert len(ev.snapshot_parts(_seg(30), "u", cfg, reserve=1)) <= 9  # room left for the end part
+
+
+def test_set18_xp_table_and_observed_override():
+    from tftnet.vod.rounds import XP_TO_NEXT, observed_xp_table
+
+    assert (XP_TO_NEXT[7], XP_TO_NEXT[8], XP_TO_NEXT[9]) == (56, 68, 68)  # patch 18.2 + Sept 14 mid-patch
+    assert observed_xp_table([7, 7, 7, 8, None], [56, 56, 60, 68, 40]) == {7: 56}  # one read of 8 isn't enough
+    assert xp_gained(7, 50, 8, 2) == 8               # 6 to finish level 7 from the table, then 2
+    assert xp_gained(7, 50, 8, 2, table={7: 60}) == 12
