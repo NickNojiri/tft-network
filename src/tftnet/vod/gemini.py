@@ -2,9 +2,11 @@
 
 Two entry points:
 - ask_video: one clip per request (the original pipeline). Tries the Interactions API, then generate_content.
-- ask_parts: several clips of the same video in ONE request, each with its own offsets and fps, used by the
-  event-sampling pipeline (vod/events.py). Audio is excluded with content_layers=[FRAMES]; if the API
-  rejects that, the request is resent with audio and the token log shows the audio tokens.
+- ask_parts: several clips of the same video in ONE request, each with its own offsets, fps and resolution,
+  used by the event-sampling pipeline (vod/events.py). Sent through the Interactions API with
+  processing.content_layers=["frames"] so no audio is tokenized. generate_content's v1beta endpoint rejects
+  content_layers, and its global media_resolution did not change tokens per frame in the first live run, so
+  it is only the last fallback (with audio). The mode that worked is saved in caps_path.
 
 Every request goes through an optional Budget (daily counter + per-minute limits) and is retried on
 503/500 with exponential backoff and jitter, and on 429 after a minute. Real token counts from
@@ -18,6 +20,7 @@ import random
 import re
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable, Type
 
 from pydantic import BaseModel, ValidationError
@@ -71,6 +74,25 @@ def classify_error(e: Exception) -> str:
     return "fatal"
 
 
+class PartsLimitError(RuntimeError):
+    """The API refused the number of video parts in one request."""
+
+
+_PARTS_LIMIT = re.compile(r"(?i)(too many|at most|maximum|exceed\w*|limit)\W+(\w+\W+){0,6}(video|part|file)s?"
+                          r"|(video|part|file)s?\W+(\w+\W+){0,6}(too many|at most|maximum|exceed\w*|limit)")
+
+
+def is_unsupported(e: Exception) -> bool:
+    """A 400 about the request's shape (an unknown field, an unsupported option)."""
+    code = getattr(e, "code", None)
+    return (code == 400 or "INVALID_ARGUMENT" in str(e)) and not _PARTS_LIMIT.search(str(e))
+
+
+# Multi-part request modes in order of preference: (api, frames only). generate_content without audio is
+# left out: its v1beta endpoint rejects VideoMetadata.content_layers ("Unknown name"), measured 2026-11-16.
+MODES = [("interactions", True), ("interactions", False), ("generate_content", False)]
+
+
 def _extract_json(text: str) -> str:
     text = (text or "").strip()
     fence = re.search(r"```(?:json)?\s*(.*?)```", text, re.S)
@@ -110,8 +132,9 @@ def _ia_usage(resp) -> dict:
 
 class GeminiVideo:
     def __init__(self, api_key: str, model: str, resolution: str = "high", budget: Budget | None = None,
-                 usage_log: UsageLog | None = None, api: str = "generate_content",
-                 sleep: Callable[[float], None] = time.sleep, max_attempts: int = 5, backoff_s: float = 8.0):
+                 usage_log: UsageLog | None = None, api: str = "interactions",
+                 sleep: Callable[[float], None] = time.sleep, max_attempts: int = 5, backoff_s: float = 8.0,
+                 caps_path: Path | None = None):
         if not api_key:
             raise RuntimeError("GEMINI_API_KEY is empty. Get a free key in Google AI Studio and add it to .env.")
         from google import genai  # imported lazily so the rest of the repo works without it
@@ -124,6 +147,29 @@ class GeminiVideo:
         self.budget, self.usage_log, self.api = budget, usage_log, api
         self.sleep, self.max_attempts, self.backoff_s = sleep, max_attempts, backoff_s
         self.exclude_audio = True
+        # Which multi-part mode works is remembered per model, so a rejected option costs one request once.
+        self.caps_path = Path(caps_path) if caps_path else None
+        caps = self._caps().get(model)
+        if caps:
+            self.api, self.exclude_audio = caps["api"], caps["frames_only"]
+
+    def _caps(self) -> dict:
+        if self.caps_path and self.caps_path.exists():
+            try:
+                return json.loads(self.caps_path.read_text())
+            except ValueError:
+                return {}
+        return {}
+
+    def _save_caps(self) -> None:
+        if self.caps_path:
+            caps = self._caps()
+            caps[self.model] = {"api": self.api, "frames_only": self.exclude_audio}
+            self.caps_path.parent.mkdir(parents=True, exist_ok=True)
+            self.caps_path.write_text(json.dumps(caps, indent=1))
+
+    def mode(self) -> dict:
+        return {"api": self.api, "frames_only": self.exclude_audio}
 
     # ------------------------------------------------------------------ budget + retry
     def _clean(self, e: Exception) -> str:
@@ -168,29 +214,45 @@ class GeminiVideo:
     # ------------------------------------------------------------------ multi-part (event sampling)
     def ask_parts(self, parts: list[VideoPart], prompt: str, schema: Type[BaseModel], resolution: str = "medium",
                   audio: bool = False, tag: dict | None = None) -> tuple[BaseModel | None, str, str, dict]:
-        """All parts go in one request. Returns (parsed or None, raw text, api used, usage)."""
-        est = estimate_tokens(parts, resolution, audio or not self.exclude_audio, prompt)
+        """All parts go in one request. Returns (parsed or None, raw text, api used, usage).
+
+        Tries the remembered mode first. A 400 about the request's shape moves to the next mode in MODES
+        (frames only via Interactions, then with audio, then generate_content with audio); a structured-output
+        rejection skips straight to generate_content. A refused part count raises PartsLimitError."""
         tag = {**(tag or {}), "n_parts": len(parts), "frames": sum(p.frames for p in parts),
                "resolution": resolution}
-        call = self._gc_parts if self.api == "generate_content" else self._ia_parts
-        try:
-            text, usage, api = self._send(lambda: call(parts, prompt, schema, resolution, audio), est,
-                                          {**tag, "audio": audio or not self.exclude_audio})
-        except DailyLimitReached:
-            raise
-        except Exception as e:
-            if audio or not self.exclude_audio or "content_layer" not in str(e).lower():
+        start = (self.api, self.exclude_audio and not audio)
+        modes = [m for m in MODES if not (audio and m[1])]
+        modes = modes[modes.index(start):] if start in modes else modes
+        last: Exception | None = None
+        for api, frames_only in modes:
+            if last is not None and api == "interactions" and re.search(r"(?i)schema|response_format", str(last)):
+                continue
+            call = self._gc_parts if api == "generate_content" else self._ia_parts
+            est = estimate_tokens(parts, resolution, not frames_only, prompt)
+            try:
+                text, usage, used = self._send(lambda: call(parts, prompt, schema, resolution, frames_only), est,
+                                               {**tag, "api": api, "audio": not frames_only})
+            except DailyLimitReached:
                 raise
-            log.warning("API rejected content_layers=[FRAMES]; resending with audio included (%s)", self._clean(e)[:120])
-            self.exclude_audio = False
-            text, usage, api = self._send(lambda: call(parts, prompt, schema, resolution, audio), est,
-                                          {**tag, "audio": True})
-        usage = {**usage, "audio_excluded": not (audio or not self.exclude_audio)}
-        return self.parse(text, schema), text, api, usage
+            except Exception as e:
+                if _PARTS_LIMIT.search(str(e)) and (getattr(e, "code", None) == 400 or "INVALID_ARGUMENT" in str(e)):
+                    raise PartsLimitError(f"{len(parts)} video parts refused: {self._clean(e)[:200]}") from None
+                if not is_unsupported(e):
+                    raise
+                log.warning("%s with frames_only=%s rejected (%s); trying the next mode", api, frames_only,
+                            self._clean(e)[:160])
+                last = e
+                continue
+            if (api, frames_only) != start and not audio:
+                self.api, self.exclude_audio = api, frames_only
+                self._save_caps()
+            return self.parse(text, schema), text, used, {**usage, "audio_excluded": frames_only}
+        raise last  # every mode was rejected
 
-    def _gc_parts(self, parts, prompt, schema, resolution, audio) -> tuple[str, dict, str]:
+    def _gc_parts(self, parts, prompt, schema, resolution, frames_only) -> tuple[str, dict, str]:
         types = self.genai.types
-        layers = None if (audio or not self.exclude_audio) else [types.VideoMetadataContentLayer.FRAMES]
+        layers = [types.VideoMetadataContentLayer.FRAMES] if frames_only else None
         content = []
         for p in parts:
             if p.label:
@@ -206,13 +268,13 @@ class GeminiVideo:
             model=self.model, contents=[types.Content(role="user", parts=content)], config=config)
         return resp.text, _gc_usage(resp), "generate_content"
 
-    def _ia_parts(self, parts, prompt, schema, resolution, audio) -> tuple[str, dict, str]:
+    def _ia_parts(self, parts, prompt, schema, resolution, frames_only) -> tuple[str, dict, str]:
         items: list[dict] = []
         for p in parts:
             if p.label:
                 items.append({"type": "text", "text": p.label})
             proc = {"type": "static", "fps": p.fps, "start_offset": _offset(p.start_s), "end_offset": _offset(p.end_s)}
-            if not (audio or not self.exclude_audio):
+            if frames_only:
                 proc["content_layers"] = ["frames"]
             items.append({"type": "video", "uri": p.url, "processing": proc, "resolution": resolution})
         items.append({"type": "text", "text": prompt})

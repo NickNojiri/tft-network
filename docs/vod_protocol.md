@@ -38,7 +38,14 @@ spends about 3 requests per game instead of one per 10-minute clip:
 
 Pass C goes to rounds where a number was unreadable, a check failed, gold dropped by 10 or more, a Wisp was
 offered, or a Wisp was expected but the shop was hidden. Wisps sit in every other shop and a reroll counts as a
-shop, so the expected pattern is recomputed from each sighting. Audio is not sent (`content_layers=[FRAMES]`).
+shop, so the expected pattern is recomputed from each sighting.
+
+Audio is not sent: multi-part requests go through the Interactions API with `processing.content_layers=["frames"]`
+and a resolution per video part. In the first live run, generate_content rejected `content_layers` with a 400, and
+its global `media_resolution` did not change tokens per frame. If a mode is rejected, the next one is tried
+(Interactions with audio, then generate_content with audio). The mode that works is saved in
+`data/vods/raw/gemini_caps.json`. `--snap-parts 70` gives every round its own two short snapshot windows; if the
+API refuses that many parts, it re-plans with 10.
 
 Each round gets `gold_conf`, `hp_conf`, `level_conf` and an overall `confidence`: `exact` (two or more frames
 agree, or the high-res zoom read it), `inferred` (one frame, or frames disagree) or `missing`. Missing numbers

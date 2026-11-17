@@ -149,7 +149,7 @@ def test_retries_503_with_backoff_and_counts_every_attempt(tmp_path, monkeypatch
             raise APIError(503, "UNAVAILABLE")
         return '{"rounds": []}', {"prompt_tokens": 1234, "in_video_tokens": 1000}, "generate_content"
 
-    gem._gc_parts = flaky
+    gem._ia_parts = flaky
     parsed, _, _, usage = gem.ask_parts([VideoPart("u", 0, 60, 0.2)], "p", Segmentation, "low")
     assert parsed.rounds == [] and usage["prompt_tokens"] == 1234 and usage["audio_excluded"]
     assert len(calls) == 3 and c.slept == [8.0, 16.0]
@@ -163,7 +163,7 @@ def test_daily_quota_error_stops(tmp_path):
     def boom(*a):
         raise APIError(429, "RESOURCE_EXHAUSTED GenerateRequestsPerDayPerProject")
 
-    gem._gc_parts = boom
+    gem._ia_parts = boom
     with pytest.raises(DailyLimitReached):
         gem.ask_parts([VideoPart("u", 0, 60, 0.2)], "p", Segmentation, "low")
 
@@ -178,10 +178,62 @@ def test_key_is_scrubbed_from_logged_errors(tmp_path):
     def leak(*a):
         raise APIError(400, "bad request for key test-key-not-real")
 
-    gem._gc_parts = leak
+    gem._ia_parts = gem._gc_parts = leak
     with pytest.raises(APIError):
         gem.ask_parts([VideoPart("u", 0, 60, 0.2)], "p", Segmentation, "low")
     assert "test-key-not-real" not in (tmp_path / "log.jsonl").read_text()
+
+
+def test_rejected_frames_only_falls_back_and_is_remembered(tmp_path):
+    c = Clock(NOON_PT)
+    caps = tmp_path / "caps.json"
+    gem = _gem(tmp_path, c, caps_path=caps)
+    seen = []
+
+    def ia(parts, prompt, schema, res, frames_only):
+        seen.append(("ia", frames_only))
+        if frames_only:
+            raise APIError(400, "INVALID_ARGUMENT Unknown name \"content_layers\": Cannot find field.")
+        return '{"rounds": []}', {"prompt_tokens": 10}, "interactions"
+
+    gem._ia_parts = ia
+    _, _, api, usage = gem.ask_parts([VideoPart("u", 0, 60, 0.2)], "p", Segmentation, "low")
+    assert seen == [("ia", True), ("ia", False)] and api == "interactions" and usage["audio_excluded"] is False
+    again = _gem(tmp_path, c, caps_path=caps)
+    assert again.mode() == {"api": "interactions", "frames_only": False}  # no second failed probe
+
+
+def test_schema_rejection_skips_to_generate_content(tmp_path):
+    c = Clock(NOON_PT)
+    gem = _gem(tmp_path, c)
+    seen = []
+
+    def ia(*a):
+        seen.append("ia")
+        raise APIError(400, "INVALID_ARGUMENT response_format schema is not supported with video")
+
+    def gc(*a):
+        seen.append("gc")
+        return '{"rounds": []}', {}, "generate_content"
+
+    gem._ia_parts, gem._gc_parts = ia, gc
+    _, _, api, _ = gem.ask_parts([VideoPart("u", 0, 60, 0.2)], "p", Segmentation, "low")
+    assert seen == ["ia", "gc"] and api == "generate_content"
+
+
+def test_parts_limit_is_reported_not_retried(tmp_path):
+    from tftnet.vod.gemini import PartsLimitError
+
+    c = Clock(NOON_PT)
+    gem = _gem(tmp_path, c)
+
+    def ia(*a):
+        raise APIError(400, "INVALID_ARGUMENT: a request can contain at most 10 video parts")
+
+    gem._ia_parts = ia
+    with pytest.raises(PartsLimitError):
+        gem.ask_parts([VideoPart("u", 0, 60, 0.2)] * 12, "p", Segmentation, "low")
+    assert gem.budget.used_today() == 1
 
 
 # ---------------------------------------------------------------- segmentation and windows
@@ -292,3 +344,55 @@ def test_extract_game_three_requests_and_accounting(settings, monkeypatch):
     t2, summ2 = ev.extract_game(settings, gem2, g, ev.EventConfig())
     assert gem2.calls == [] and summ2["requests_sent"] == 0
     pd.testing.assert_frame_equal(t, t2)
+
+
+class LimitedGem(StubGem):
+    """Refuses snapshot requests with more than 4 parts."""
+
+    def ask_parts(self, parts, prompt, schema, **kw):
+        from tftnet.vod.gemini import PartsLimitError
+
+        if schema is Snapshots and len(parts) > 4:
+            self.calls.append(("refused", len(parts), kw.get("resolution")))
+            raise PartsLimitError("too many video parts")
+        return super().ask_parts(parts, prompt, schema, **kw)
+
+
+def test_snapshot_parts_refused_replans(settings, monkeypatch):
+    from tftnet.vod.gemini import PartsLimitError
+
+    monkeypatch.setattr(ev, "_wisps", lambda s: ([], {}))
+
+    class RefuseOver10(StubGem):
+        def ask_parts(self, parts, prompt, schema, **kw):
+            if schema is Snapshots and len(parts) > 10:
+                self.calls.append(("refused", len(parts), None))
+                raise PartsLimitError("too many video parts")
+            return super().ask_parts(parts, prompt, schema, **kw)
+
+    seg_rounds = [{"stage": f"{2 + i // 7}-{1 + i % 7}", "part": 1, "planning": ev.fmt_ts(100 + 80 * i),
+                   "combat": ev.fmt_ts(130 + 80 * i)} for i in range(8)]
+    gem = RefuseOver10()
+    orig = gem.ask_parts
+
+    def ask(parts, prompt, schema, **kw):
+        if schema is Segmentation:
+            gem.calls.append(("Segmentation", len(parts), kw.get("resolution")))
+            m = Segmentation.model_validate({"rounds": seg_rounds})
+            return m, m.model_dump_json(), "stub", {}
+        if schema is Snapshots and len(parts) <= 10:
+            gem.calls.append(("Snapshots", len(parts), kw.get("resolution")))
+            m = Snapshots.model_validate({"rounds": []})
+            return m, m.model_dump_json(), "stub", {}
+        return orig(parts, prompt, schema, **kw)
+
+    gem.ask_parts = ask
+    g = SimpleNamespace(game_id="g3", video_url="u", start_s=60, end_s=800, streamer_name="S")
+    _, summ = ev.extract_game(settings, gem, g, ev.EventConfig(snap_max_parts=70))
+    names = [c[0] for c in gem.calls]
+    assert names[:3] == ["Segmentation", "refused", "Snapshots"]  # 16 windows refused, then one per round
+    assert gem.calls[1][1] == 16 and gem.calls[2][1] == 8
+    assert summ["passes"]["B"]["parts_refused"] == 70
+    with pytest.raises(PartsLimitError):  # refusing even 10 parts is not retried
+        ev.extract_game(settings, LimitedGem(), SimpleNamespace(game_id="g4", video_url="u", start_s=60,
+                                                                  end_s=480, streamer_name="S"), ev.EventConfig())

@@ -17,14 +17,14 @@ import hashlib
 import json
 import logging
 import math
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 
 import numpy as np
 import pandas as pd
 
 from ..config import Settings
 from . import prompts
-from .gemini import VideoPart, estimate_tokens
+from .gemini import PartsLimitError, VideoPart, estimate_tokens
 from .rounds import (XP_PER_BUY, consensus, gold_accounting, has_shop, parse_stage, round_type, sell_value,
                      stage_index, ts_seconds, validate, wisp_schedule, xp_gained)
 from .schema import Segmentation, Snapshots, Zooms
@@ -48,7 +48,8 @@ class EventConfig:
     zoom_res: str = "high"
     zoom_requests: int = 1
     zoom_drop: int = 10
-    max_parts: int = 10       # video parts per request. Gemini documents up to 10 videos per request.
+    max_parts: int = 10       # video parts per request (A, C). Gemini documents up to 10 videos per request.
+    snap_max_parts: int = 10  # B: two windows per round needs ~70; above 10 is untested. Refused -> back to 10.
     audio: bool = False
     token_cap: int = 240_000  # stay under the 250K tokens/minute free-tier cap
 
@@ -129,10 +130,14 @@ class _Caller:
         self.s, self.gem, self.cfg, self.gid = s, gem, cfg, game_id
         self.stats: dict[str, dict] = {}
 
+    def _path(self, pass_: str, idx: int, spec: dict):
+        spec = {**spec, "mode": self.gem.mode() if hasattr(self.gem, "mode") else None}
+        return self.s.vod_dir / "raw" / f"{self.gid}__ev{pass_}{idx}_{_key(spec)}.json"
+
     def __call__(self, pass_: str, idx: int, parts: list[VideoPart], prompt: str, schema, res: str) -> dict:
         spec = {"model": getattr(self.gem, "model", "?"), "parts": [asdict(p) for p in parts], "prompt": prompt,
                 "schema": schema.__name__, "res": res, "audio": self.cfg.audio}
-        path = self.s.vod_dir / "raw" / f"{self.gid}__ev{pass_}{idx}_{_key(spec)}.json"
+        path = self._path(pass_, idx, spec)
         st = self.stats.setdefault(pass_, {"requests": 0, "cached": 0, "parts": 0, "frames": 0, "est_tokens": 0,
                                            "prompt_tokens": 0, "video_tokens": 0, "audio_tokens": 0,
                                            "output_tokens": 0, "failed_parse": 0})
@@ -148,6 +153,7 @@ class _Caller:
                 tag={"pass": pass_, "game_id": self.gid, "request": idx})
             rec = {"request": {"parts": spec["parts"], "res": res, "prompt_head": prompt[:300]}, "api": api,
                    "usage": usage, "raw_text": text, "parsed": parsed.model_dump() if parsed else None}
+            path = self._path(pass_, idx, spec)  # keyed by the mode that actually answered
             path.parent.mkdir(parents=True, exist_ok=True)
             (path if parsed else path.with_suffix(".failed.json")).write_text(json.dumps(rec, indent=1))
             st["requests"] += 1
@@ -227,7 +233,7 @@ def _planning_end(r) -> float:
 def snapshot_parts(seg: pd.DataFrame, url: str, cfg: EventConfig) -> list[VideoPart]:
     """Two short windows per round (planning start, just before combat). If they don't fit
     max_parts x snap_requests, each round becomes one window, then consecutive rounds share a part."""
-    cap = cfg.max_parts * cfg.snap_requests
+    cap = cfg.snap_max_parts * cfg.snap_requests
     lead = (cfg.snap_frames - 1) / cfg.snap_fps
     two = []
     for _, r in seg.iterrows():
@@ -450,14 +456,23 @@ def extract_game(s: Settings, gem, g, cfg: EventConfig) -> tuple[pd.DataFrame, d
         return pd.DataFrame(), {**summary, "passes": call.stats}
 
     # B
-    parts = snapshot_parts(seg, url, cfg)
     prompt = prompts.snapshot_prompt(name, wisp_names)
-    snaps = []
-    bs = batches(parts, cfg.snap_res, cfg.audio, cfg.token_cap, cfg.max_parts)
-    if len(bs) > cfg.snap_requests:
-        log.warning("%s: snapshots need %d requests (token cap), not %d", g.game_id, len(bs), cfg.snap_requests)
-    for k, b in enumerate(bs):
-        snaps += (call("B", k, b, prompt, Snapshots, cfg.snap_res).get("parsed") or {}).get("rounds", [])
+    while True:
+        parts = snapshot_parts(seg, url, cfg)
+        bs = batches(parts, cfg.snap_res, cfg.audio, cfg.token_cap, cfg.snap_max_parts)
+        if len(bs) > cfg.snap_requests:
+            log.warning("%s: snapshots need %d requests (token cap), not %d", g.game_id, len(bs), cfg.snap_requests)
+        try:
+            snaps = []
+            for k, b in enumerate(bs):
+                snaps += (call("B", k, b, prompt, Snapshots, cfg.snap_res).get("parsed") or {}).get("rounds", [])
+            break
+        except PartsLimitError as e:
+            if cfg.snap_max_parts <= 10:
+                raise
+            log.warning("%s; replanning snapshots with 10 parts per request", e)
+            call.stats.setdefault("B", {})["parts_refused"] = cfg.snap_max_parts
+            cfg = replace(cfg, snap_max_parts=10)
     t = summarize_snapshots(seg, snaps)
     t["wisp_expected"] = wisp_schedule(list(t["stage"]), list(t["wisp_status"]))
 

@@ -143,13 +143,14 @@ def _gem(s):
     from .vod.budget import UsageLog
     from .vod.gemini import GeminiVideo
     return GeminiVideo(s.gemini_api_key, s.gemini_model, budget=_budget(s),
-                       usage_log=UsageLog(s.vod_dir / "raw" / "token_log.jsonl"))
+                       usage_log=UsageLog(s.vod_dir / "raw" / "token_log.jsonl"),
+                       caps_path=s.vod_dir / "raw" / "gemini_caps.json")
 
 
 def _event_config(a):
     from .vod.events import EventConfig
     cfg = EventConfig()
-    for k in ["seg_fps", "snap_res", "zoom_fps", "zoom_requests", "max_parts"]:
+    for k in ["seg_fps", "snap_res", "zoom_fps", "zoom_requests", "max_parts", "snap_max_parts"]:
         if getattr(a, k, None) is not None:
             setattr(cfg, k, getattr(a, k))
     cfg.audio = bool(getattr(a, "audio", False))
@@ -446,7 +447,10 @@ def main(argv=None):
     c.add_argument("--snap-res", choices=["low", "medium", "high"], help="events: snapshot resolution (medium)")
     c.add_argument("--zoom-fps", type=float, help="events: zoom frames per second (default 1)")
     c.add_argument("--zoom-requests", type=int, help="events: zoom requests per game (default 1)")
-    c.add_argument("--max-parts", type=int, help="events: video parts per request (default 10)")
+    c.add_argument("--max-parts", type=int, help="events: video parts per request, passes A and C (default 10)")
+    c.add_argument("--snap-parts", dest="snap_max_parts", type=int,
+                   help="events: video parts in the snapshot request (default 10; ~70 gives every round two "
+                        "short windows; refused counts fall back to 10)")
     c.add_argument("--audio", action="store_true", help="events: send audio too (default: frames only)")
     c.add_argument("--wait-for-reset", action="store_true",
                    help="events: at the daily limit, sleep until midnight Pacific and continue")
