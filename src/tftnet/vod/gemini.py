@@ -142,7 +142,7 @@ class GeminiVideo:
     def __init__(self, api_key: str, model: str, resolution: str = "high", budget: Budget | None = None,
                  usage_log: UsageLog | None = None, api: str = "interactions",
                  sleep: Callable[[float], None] = time.sleep, max_attempts: int = 5, backoff_s: float = 8.0,
-                 caps_path: Path | None = None):
+                 caps_path: Path | None = None, max_output_tokens: int = 24576):
         if not api_key:
             raise RuntimeError("GEMINI_API_KEY is empty. Get a free key in Google AI Studio and add it to .env.")
         from google import genai  # imported lazily so the rest of the repo works without it
@@ -155,6 +155,8 @@ class GeminiVideo:
         self.budget, self.usage_log, self.api = budget, usage_log, api
         self.sleep, self.max_attempts, self.backoff_s = sleep, max_attempts, backoff_s
         self.exclude_audio = True
+        # A runaway answer (long digit loops, 58K tokens in one live run) stops here instead.
+        self.max_output_tokens = max_output_tokens
         # Which multi-part mode works is remembered per model, so a rejected option costs one request once.
         self.caps_path = Path(caps_path) if caps_path else None
         caps = self._caps().get(model)
@@ -271,7 +273,7 @@ class GeminiVideo:
             content.append(types.Part(file_data=types.FileData(file_uri=p.url), video_metadata=meta))
         content.append(types.Part(text=prompt))
         config = types.GenerateContentConfig(
-            response_mime_type="application/json", response_schema=schema,
+            response_mime_type="application/json", response_schema=schema, max_output_tokens=self.max_output_tokens,
             media_resolution=getattr(types.MediaResolution, _GC_RES.get(resolution, _GC_RES["high"])))
         resp = self.client.models.generate_content(
             model=self.model, contents=[types.Content(role="user", parts=content)], config=config)
@@ -288,7 +290,8 @@ class GeminiVideo:
             items.append({"type": "video", "uri": p.url, "processing": proc, "resolution": resolution})
         items.append({"type": "text", "text": prompt})
         kw = dict(model=self.model, input=items,
-                  response_format={"type": "text", "mime_type": "application/json", "schema": schema.model_json_schema()})
+                  response_format={"type": "text", "mime_type": "application/json", "schema": schema.model_json_schema()},
+                  generation_config={"max_output_tokens": self.max_output_tokens})
         if frames_only:
             # content_layers exists only in v1beta; the client's default Interactions route is v1 (live run 2026-11-16)
             kw["api_version"] = "v1beta"

@@ -239,6 +239,7 @@ def test_frames_only_interactions_call_uses_v1beta(tmp_path):
     gem.client = SimpleNamespace(interactions=SimpleNamespace(create=lambda **kw: cap.update(kw) or Resp()))
     gem._ia_parts([VideoPart("u", 0, 60, 0.2)], "p", Segmentation, "low", True)
     assert cap["api_version"] == "v1beta" and cap["input"][0]["processing"]["content_layers"] == ["frames"]
+    assert cap["generation_config"]["max_output_tokens"] == 24576
     cap.clear()
     gem._ia_parts([VideoPart("u", 0, 60, 0.2)], "p", Segmentation, "low", False)
     assert "api_version" not in cap and "content_layers" not in cap["input"][0]["processing"]
@@ -479,3 +480,10 @@ def test_degenerate_snapshot_answer_replans_with_ten(settings, monkeypatch):
     assert [c for c in calls if c[0] == "SnapshotsFlat"] == [("SnapshotsFlat", 16), ("SnapshotsFlat", 8)]
     assert summ["passes"]["B"]["degenerate_parts"] == 70 and summ["passes"]["B"]["coverage"] == 1.0
     assert t["gold"].notna().all()
+
+def test_int_fields_are_bounded_in_schema_but_parse_leniently():
+    from tftnet.vod.schema import ZoomRound
+
+    props = ZoomRound.model_json_schema()["properties"]
+    assert {"minimum": 1, "maximum": 10}.items() <= props["level_start"]["anyOf"][0].items()
+    assert ZoomRound.model_validate({"stage": "2-1", "level_start": 3535}).level_start == 3535  # check flags it
