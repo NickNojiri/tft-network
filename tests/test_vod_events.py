@@ -487,3 +487,17 @@ def test_int_fields_are_bounded_in_schema_but_parse_leniently():
     props = ZoomRound.model_json_schema()["properties"]
     assert {"minimum": 1, "maximum": 10}.items() <= props["level_start"]["anyOf"][0].items()
     assert ZoomRound.model_validate({"stage": "2-1", "level_start": 3535}).level_start == 3535  # check flags it
+
+def test_zoom_fills_gaps_but_does_not_override_exact_snapshot():
+    seg = pd.DataFrame({"stage": ["5-5", "5-6"], "planning_s": [100.0, 180.0], "combat_s": [130.0, 210.0]})
+    snaps = [{"stage": "5-5", "gold_start": 26, "hp": 16, "level_start": 8, "gold_end": 20, "frames_agree": True},
+             {"stage": "5-6", "gold_start": None, "hp": 16, "level_start": 8, "gold_end": 0, "frames_agree": None}]
+    t = ev.summarize_snapshots(seg, snaps)
+    t["zoomed"] = True
+    zooms = [{"stage": "5-5", "gold_start": 12, "gold_end": 0, "units_bought": [], "units_sold": []},
+             {"stage": "5-6", "gold_start": 29, "gold_end": 0, "rerolls": 14, "xp_buys": 0, "units_bought": ["Karma"]}]
+    r = ev.apply_zooms(t, zooms, {}, {"karma": 1}).set_index("stage")
+    assert (r.loc["5-5", "gold"], r.loc["5-5", "gold_conf"], r.loc["5-5", "gold_zoom"]) == (26, "inferred", 12)
+    assert np.isnan(r.loc["5-5", "rerolls"]) and "zoom_no_shop_read" in r.loc["5-5", "acct_flags"]
+    assert (r.loc["5-6", "gold"], r.loc["5-6", "gold_conf"]) == (29, "exact")
+    assert r.loc["5-6", "rerolls"] == 14 and r.loc["5-6", "acct_flags"] == ""  # (29 - 0 - 1) / 2

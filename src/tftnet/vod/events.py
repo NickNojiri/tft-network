@@ -387,25 +387,31 @@ def apply_zooms(t: pd.DataFrame, zooms: list[dict], wisp_cost: dict[str, float],
         p = parse_stage(z.get("stage"))
         if p:
             by.setdefault(f"{p[0]}-{p[1]}", z)
-    for col in ["xp_buys", "unit_cost", "wisp_cost", "sold_value", "rerolls", "rerolls_read", "spend"]:
+    for col in ["xp_buys", "unit_cost", "wisp_cost", "sold_value", "rerolls", "rerolls_read", "spend",
+                "gold_zoom", "hp_zoom", "level_zoom", "gold_end_zoom"]:
         t[col] = np.nan
     t["acct_flags"] = ""
     for i, r in t.iterrows():
         z = by.get(r["stage"]) if r.get("zoomed") else None
         if z:
+            # An exact snapshot reading wins: in the live run, snapshots matched the chunk run and the zooms'
+            # differing gold mostly did not. The zoom fills gaps; a disagreement downgrades to 'inferred'.
             for col, zc, conf in [("gold", "gold_start", "gold_conf"), ("hp", "hp", "hp_conf"),
                                   ("level", "level_start", "level_conf"), ("gold_end", "gold_end", "gold_end_conf")]:
                 zv = z.get(zc)
                 if zv is None:
                     continue
-                if r[conf] == "exact" and pd.notna(r[col]) and r[col] != zv:
-                    t.at[i, conf] = "inferred"  # B and C disagree; C (high res) wins
-                else:
+                t.at[i, f"{col}_zoom"] = zv
+                if pd.notna(r[col]) and r[col] == zv:
                     t.at[i, conf] = "exact"
-                t.at[i, col] = zv
+                elif pd.notna(r[col]) and r[conf] == "exact":
+                    t.at[i, conf] = "inferred"
+                else:
+                    t.at[i, col] = zv
+                    t.at[i, conf] = "exact" if pd.isna(r[col]) else "inferred"
             for col, zc in [("xp", "xp_start"), ("xp_max", "xp_max_start"), ("level_end", "level_end"),
                             ("xp_end", "xp_end")]:
-                if z.get(zc) is not None:
+                if z.get(zc) is not None and pd.isna(r[col]):
                     t.at[i, col] = z[zc]
             st = _wisp_status(z.get("wisp_slot"))
             if st != "unseen" and has_shop(r["stage"]):
@@ -429,7 +435,9 @@ def apply_zooms(t: pd.DataFrame, zooms: list[dict], wisp_cost: dict[str, float],
         elif read_buys is not None and pd.notna(xp_buys) and read_buys != xp_buys:
             flags.append("xp_buy_mismatch")
         units = sold = wcost = np.nan
-        if z:
+        # Empty lists with no reroll count mean the zoom didn't follow the shop, not that nothing was bought.
+        shop_read = bool(z) and (z.get("rerolls") is not None or bool(z.get("units_bought")) or bool(z.get("units_sold")))
+        if shop_read:
             costs = [unit_cost.get(norm(u)) for u in z.get("units_bought") or []]
             units = float(sum(costs)) if all(c is not None for c in costs) else np.nan
             if pd.isna(units):
@@ -442,6 +450,8 @@ def apply_zooms(t: pd.DataFrame, zooms: list[dict], wisp_cost: dict[str, float],
                 wcost = np.nan
             else:
                 wcost = 0.0
+        if z and not shop_read:
+            flags.append("zoom_no_shop_read")
         acct = gold_accounting(r["gold"], r["gold_end"], xp_buys, units, wcost, 0 if pd.isna(sold) else sold,
                                z.get("rerolls") if z else None)
         t.at[i, "xp_buys"], t.at[i, "unit_cost"], t.at[i, "wisp_cost"] = xp_buys, units, wcost
